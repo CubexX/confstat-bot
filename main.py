@@ -11,7 +11,7 @@ def main():
     dp = updater.dispatcher
 
     job_queue = updater.job_queue
-    job_queue.put(handlers.job, 60 * 5, repeat=True)
+    job_queue.put(handlers.job, 15, repeat=True)
 
     dp.add_handler(CommandHandler('start', handlers.start))
     dp.add_handler(CommandHandler('me', handlers.me))

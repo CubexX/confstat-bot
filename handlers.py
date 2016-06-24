@@ -3,6 +3,7 @@ __author__ = 'CubexX'
 
 from models import db, Entity, Chat, User, UserStat, ChatStat, Stack
 from config import SITE_URL, cache, logger
+from telegram import ParseMode
 import re
 
 
@@ -19,9 +20,52 @@ def stat(bot, update):
     chat_type = update.message.chat.type
 
     if chat_type == 'group':
-        msg = '{}/group/{}'.format(SITE_URL, chat_id)
+        msg = '{}/group/{}\n'.format(SITE_URL, chat_id)
+        all_msg_count = 0
+        current_users = 0
+        top_users = ''
+        popular_links = ''
 
-        bot.sendMessage(chat_id, msg)
+        q = db.query(ChatStat) \
+            .filter(ChatStat.cid == chat_id) \
+            .order_by(ChatStat.id.desc()) \
+            .all()
+        if q:
+            for row in q:
+                all_msg_count += row.msg_count
+            current_users = q[0].users_count
+
+        q = db.query(UserStat, User) \
+            .join(User, User.uid == UserStat.uid) \
+            .filter(UserStat.cid == chat_id) \
+            .order_by(UserStat.msg_count.desc()) \
+            .limit(5) \
+            .all()
+        if q:
+            for stats, user in q:
+                top_users += '  *{}* — {}\n'.format(user.fullname,
+                                                    stats.msg_count)
+
+        q = db.query(Entity) \
+            .filter(Entity.cid == chat_id,
+                    Entity.type == 'url') \
+            .order_by(Entity.count.desc()) \
+            .limit(3) \
+            .all()
+        if q:
+            for url in q:
+                popular_links += '  *{}* — {}\n'.format(url.title,
+                                                        url.count)
+
+        msg += ' Сообщений: {}\n' \
+               ' Активных пользовтелей: {}\n\n' \
+               ' Топ-5:\n{}\n\n' \
+               ' Популярные ссылки:\n{}'.format(all_msg_count,
+                                                current_users,
+                                                top_users,
+                                                popular_links)
+
+        bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
 
 def me(bot, update):
@@ -35,12 +79,20 @@ def me(bot, update):
 
     if chat_type == 'group':
         user = UserStat().get(user_id, chat_id)
+        all_msg_count = 0
+
+        q = db.query(UserStat).filter(UserStat.uid == user_id).all()
+        if q:
+            for row in q:
+                all_msg_count += row.msg_count
 
         if user:
-            msg = 'Статистика для {} (@{}):\n' \
-                  ' Сообщений в этом чате: {}'.format(user_fullname,
-                                                      username,
-                                                      user.msg_count)
+            msg = '{} (@{}):\n' \
+                  ' Сообщений в этом чате: {}\n' \
+                  ' Сообщений всего: {}'.format(user_fullname,
+                                                username,
+                                                user.msg_count,
+                                                all_msg_count)
 
             bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
 
