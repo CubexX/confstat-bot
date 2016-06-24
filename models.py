@@ -220,9 +220,10 @@ class ChatStat(Base):
     def add(self, cid, users_count, msg_count, last_time):
         chat_stat = self.get(cid)
         today = datetime.today().day
-        last_day = datetime.fromtimestamp(timestamp=chat_stat.last_time).day
 
         if chat_stat:
+            last_day = datetime.fromtimestamp(timestamp=chat_stat.last_time).day
+
             if last_day < today:
                 db.add(ChatStat(cid=cid, msg_count=int(chat_stat.msg_count) + msg_count,
                                 users_count=int(chat_stat.users_count) + users_count,
