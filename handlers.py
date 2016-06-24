@@ -4,8 +4,11 @@ __author__ = 'CubexX'
 from models import db, Entity, Chat, User, UserStat, ChatStat, Stack
 from config import SITE_URL, cache, logger
 from telegram import ParseMode
+import locale
 import re
 
+def number_format(num, places=0):
+    return locale.format("%.*f", (places, num), True)
 
 def start(bot, update):
     chat_id = update.message.chat_id
@@ -45,7 +48,11 @@ def stat(bot, update):
             i = 0
             for stats, user in q: #generate top users
                 i += 1
-                top_users += '  *{}. {}* — {}\n'.format(i, user.fullname,
+                if all_msg_count is not 0:
+                    top_users += '  *{}. {}* — {} ({} %)\n'.format(i, user.fullname,
+                                                    stats.msg_count, number_format(stats.msg_count * 100 / all_msg_count, 2))
+                else:
+                    top_users += '  *{}. {}* — {}\n'.format(i, user.fullname,
                                                     stats.msg_count)
 
         q = db.query(Entity) \
