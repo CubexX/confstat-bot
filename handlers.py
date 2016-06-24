@@ -70,11 +70,11 @@ def stat(bot, update):
 
         msg += ' Сообщений: {}\n' \
                ' Активных пользовтелей: {}\n\n' \
-               ' Топ-5:\n{}\n\n' \
-               ' Популярные ссылки:\n{}'.format(all_msg_count,
+               ' Топ-5:\n{}\n\n'.format(all_msg_count,
                                                 current_users,
-                                                top_users,
-                                                popular_links)
+                                                top_users)
+        if popular_links is not "":
+            msg += ' Популярные ссылки:\n{}'.format(popular_links)
 
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
