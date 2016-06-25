@@ -106,10 +106,11 @@ def me(bot, update):
 
         if user:
             msg = '{} (@{}):\n' \
-                  ' Сообщений в этом чате: {}\n' \
+                  ' Сообщений в этом чате: {} ({} %)\n' \
                   ' Сообщений всего: {}'.format(user_fullname,
                                                 username,
                                                 user.msg_count,
+                                                number_format(user.msg_count * 100 / all_msg_count, 2),
                                                 all_msg_count)
 
             bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
