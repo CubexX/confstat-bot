@@ -2,7 +2,7 @@
 __author__ = 'CubexX'
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Text, create_engine
+from sqlalchemy import Column, Integer, String, Text, create_engine, update
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from config import DATABASE
@@ -224,9 +224,9 @@ class ChatStat(Base):
 
         if chat_stat:
             if last_day < today:
-                self.add(cid, msg_count=int(chat_stat.msg_count) + msg_count,
-                         users_count=int(chat_stat.users_count) + users_count,
-                         last_time=last_time)
+                db.add(ChatStat(cid=cid, msg_count=int(chat_stat.msg_count) + msg_count,
+                                users_count=int(chat_stat.users_count) + users_count,
+                                last_time=last_time))
             else:
                 self.update(cid, msg_count=int(chat_stat.msg_count) + msg_count,
                             users_count=int(chat_stat.users_count) + users_count,
@@ -253,10 +253,15 @@ class ChatStat(Base):
 
     @staticmethod
     def update(cid, users_count, msg_count, last_time):
-        chat_stat = db.query(ChatStat).filter(ChatStat.cid == cid)
-        chat_stat.update({'msg_count': msg_count,
-                          'users_count': users_count,
-                          'last_time': last_time})
+        sq = db.query(ChatStat.id) \
+            .filter(ChatStat.cid == cid) \
+            .order_by(ChatStat.id.desc()).limit(1).all()
+
+        db.query(ChatStat) \
+            .filter(ChatStat.id == sq[0][0]) \
+            .update({'msg_count': msg_count,
+                     'users_count': users_count,
+                     'last_time': last_time})
         db.commit()
 
 
