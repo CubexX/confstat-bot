@@ -2,7 +2,7 @@
 __author__ = 'CubexX'
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Text, create_engine, update
+from sqlalchemy import Column, Integer, String, Text, create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from config import DATABASE

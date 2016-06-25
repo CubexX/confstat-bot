@@ -7,8 +7,10 @@ from telegram import ParseMode
 import locale
 import re
 
+
 def number_format(num, places=0):
     return locale.format("%.*f", (places, num), True)
+
 
 def start(bot, update):
     chat_id = update.message.chat_id
@@ -29,6 +31,7 @@ def stat(bot, update):
         top_users = ''
         popular_links = ''
 
+        # All messages in group and active users
         q = db.query(ChatStat) \
             .filter(ChatStat.cid == chat_id) \
             .order_by(ChatStat.id.desc()) \
@@ -38,6 +41,7 @@ def stat(bot, update):
                 all_msg_count += row.msg_count
             current_users = q[0].users_count
 
+        # Top-5 generation
         q = db.query(UserStat, User) \
             .join(User, User.uid == UserStat.uid) \
             .filter(UserStat.cid == chat_id) \
@@ -46,15 +50,18 @@ def stat(bot, update):
             .all()
         if q:
             i = 0
-            for stats, user in q: #generate top users
+            for stats, user in q:
                 i += 1
                 if all_msg_count is not 0:
                     top_users += '  *{}. {}* — {} ({} %)\n'.format(i, user.fullname,
-                                                    stats.msg_count, number_format(stats.msg_count * 100 / all_msg_count, 2))
+                                                                   stats.msg_count,
+                                                                   number_format(stats.msg_count * 100 / all_msg_count,
+                                                                                 2))
                 else:
                     top_users += '  *{}. {}* — {}\n'.format(i, user.fullname,
-                                                    stats.msg_count)
+                                                            stats.msg_count)
 
+        # Top links generation
         q = db.query(Entity) \
             .filter(Entity.cid == chat_id,
                     Entity.type == 'url') \
@@ -63,16 +70,16 @@ def stat(bot, update):
             .all()
         if q:
             i = 0
-            for url in q: #generate top links
+            for url in q:
                 i += 1
                 popular_links += '  *{}. {}* — {}\n'.format(i, url.title,
-                                                        url.count)
+                                                            url.count)
 
         msg += ' Сообщений: {}\n' \
                ' Активных пользовтелей: {}\n\n' \
                ' Топ-5:\n{}\n\n'.format(all_msg_count,
-                                                current_users,
-                                                top_users)
+                                        current_users,
+                                        top_users)
         if popular_links is not "":
             msg += ' Популярные ссылки:\n{}'.format(popular_links)
 
