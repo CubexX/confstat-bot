@@ -2,7 +2,7 @@
 __author__ = 'CubexX'
 
 from models import db, Entity, Chat, User, UserStat, ChatStat, Stack
-from config import SITE_URL, cache, logger
+from config import SITE_URL, logger
 from telegram import ParseMode
 import re
 
