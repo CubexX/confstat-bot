@@ -42,8 +42,10 @@ def stat(bot, update):
             .limit(5) \
             .all()
         if q:
-            for stats, user in q:
-                top_users += '  *{}* — {}\n'.format(user.fullname,
+            i = 0
+            for stats, user in q: #generate top users
+                i += 1
+                top_users += '  *{}. {}* — {}\n'.format(i, user.fullname,
                                                     stats.msg_count)
 
         q = db.query(Entity) \
@@ -53,8 +55,10 @@ def stat(bot, update):
             .limit(3) \
             .all()
         if q:
-            for url in q:
-                popular_links += '  *{}* — {}\n'.format(url.title,
+            i = 0
+            for url in q: #generate top links
+                i += 1
+                popular_links += '  *{}. {}* — {}\n'.format(i, url.title,
                                                         url.count)
 
         msg += ' Сообщений: {}\n' \
