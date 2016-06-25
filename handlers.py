@@ -1,22 +1,17 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from models import db, Entity, Chat, User, UserStat, ChatStat, Stack
+from models import Entity, Chat, User, UserStat, Stack, Stats
 from config import SITE_URL, logger
 from telegram import ParseMode
-import locale
 import re
-
-
-def number_format(num, places=0):
-    return locale.format("%.*f", (places, num), True)
 
 
 def start(bot, update):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
 
-    bot.sendMessage(chat_id, 'Start message')
+    bot.sendMessage(chat_id, '/stat\n/me')
 
 
 def stat(bot, update):
@@ -26,62 +21,15 @@ def stat(bot, update):
 
     if chat_type == 'group':
         msg = '{}/group/{}\n'.format(SITE_URL, chat_id)
-        all_msg_count = 0
-        current_users = 0
-        top_users = ''
-        popular_links = ''
+        info = Stats().get_chat(chat_id)
 
-        # All messages in group and active users
-        q = db.query(ChatStat) \
-            .filter(ChatStat.cid == chat_id) \
-            .order_by(ChatStat.id.desc()) \
-            .all()
-        if q:
-            for row in q:
-                all_msg_count += row.msg_count
-            current_users = q[0].users_count
-
-        # Top-5 generation
-        q = db.query(UserStat, User) \
-            .join(User, User.uid == UserStat.uid) \
-            .filter(UserStat.cid == chat_id) \
-            .order_by(UserStat.msg_count.desc()) \
-            .limit(5) \
-            .all()
-        if q:
-            i = 0
-            for stats, user in q:
-                i += 1
-                if all_msg_count is not 0:
-                    top_users += '  *{}. {}* — {} ({} %)\n'.format(i, user.fullname,
-                                                                   stats.msg_count,
-                                                                   number_format(stats.msg_count * 100 / all_msg_count,
-                                                                                 2))
-                else:
-                    top_users += '  *{}. {}* — {}\n'.format(i, user.fullname,
-                                                            stats.msg_count)
-
-        # Top links generation
-        q = db.query(Entity) \
-            .filter(Entity.cid == chat_id,
-                    Entity.type == 'url') \
-            .order_by(Entity.count.desc()) \
-            .limit(3) \
-            .all()
-        if q:
-            i = 0
-            for url in q:
-                i += 1
-                popular_links += '  *{}. {}* — {}\n'.format(i, url.title,
-                                                            url.count)
-
-        msg += ' Сообщений: {}\n' \
-               ' Активных пользовтелей: {}\n\n' \
-               ' Топ-5:\n{}\n\n'.format(all_msg_count,
-                                        current_users,
-                                        top_users)
-        if popular_links is not "":
-            msg += ' Популярные ссылки:\n{}'.format(popular_links)
+        msg += 'Сообщений: {}\n' \
+               'Активных пользовтелей: {}\n\n' \
+               'Топ-5:\n{}\n'.format(info['msg_count'],
+                                     info['current_users'],
+                                     info['top_users'])
+        if info['popular_links'] is not "":
+            msg += 'Популярные ссылки:\n{}'.format(info['popular_links'])
 
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
@@ -91,28 +39,43 @@ def me(bot, update):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     username = update.message.from_user.username
-    user_fullname = "{} {}".format(update.message.from_user.first_name,
-                                   update.message.from_user.last_name)
+    user_fullname = " ".join([update.message.from_user.first_name,
+                              update.message.from_user.last_name])
     chat_type = update.message.chat.type
 
+    if chat_type == 'private':
+        info = Stats().get_user(user_id)
+        groups = ''
+
+        i = 0
+        for group in info['groups']:
+            i += 1
+
+            info = Stats().get_user(user_id, group)
+
+            groups += ' *{}. {}* — {} ({}%)\n'.format(i,
+                                                      Chat().get(group).title,
+                                                      info['group_msg_count'],
+                                                      info['percent'])
+
+        msg = 'Всего сообщений: {}\n' \
+              'Список групп:\n' \
+              '{}'.format(info['msg_count'],
+                          groups)
+
+        bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+
     if chat_type == 'group':
-        user = UserStat().get(user_id, chat_id)
-        all_msg_count = 0
+        info = Stats().get_user(user_id, chat_id)
+        msg = '{} (@{}):\n' \
+              ' Сообщений в этом чате: {} ({}%)\n' \
+              ' Сообщений всего: {}'.format(user_fullname,
+                                            username,
+                                            info['group_msg_count'],
+                                            info['percent'],
+                                            info['msg_count'])
 
-        q = db.query(UserStat).filter(UserStat.uid == user_id).all()
-        if q:
-            for row in q:
-                all_msg_count += row.msg_count
-
-        if user:
-            msg = '{} (@{}):\n' \
-                  ' Сообщений в этом чате: {}\n' \
-                  ' Сообщений всего: {}'.format(user_fullname,
-                                                username,
-                                                user.msg_count,
-                                                all_msg_count)
-
-            bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
+        bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
 
 
 def message(bot, update):
@@ -121,8 +84,8 @@ def message(bot, update):
     msg = update.message.text
 
     username = update.message.from_user.username
-    user_fullname = "{} {}".format(update.message.from_user.first_name,
-                                   update.message.from_user.last_name)
+    user_fullname = " ".join([update.message.from_user.first_name,
+                              update.message.from_user.last_name])
 
     chat_type = update.message.chat.type
     chat_title = update.message.chat.title
@@ -160,10 +123,6 @@ def message(bot, update):
             # /command
             if entity['type'] == 'bot_command':
                 title = msg[entity['offset']:entity['offset'] + entity['length']]
-
-                if title == '/stat' or title == '/stat@confstatbot':
-                    stat(bot, update)
-
                 Entity().add(cid=chat_id, type='bot_command', title=title)
 
             # #hashtag

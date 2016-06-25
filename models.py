@@ -5,8 +5,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text, create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-from config import DATABASE
+from config import DATABASE, cache
 import time
+import locale
 
 Base = declarative_base()
 
@@ -45,8 +46,10 @@ class User(Base):
 
     @staticmethod
     def get(uid):
-        q = db.query(User).filter(User.uid == uid).all()
-
+        q = db.query(User) \
+            .filter(User.uid == uid) \
+            .limit(1) \
+            .all()
         if q:
             return q[0]
         else:
@@ -83,20 +86,32 @@ class Chat(Base):
         else:
             db.add(Chat(cid=cid,
                         title=title))
+
+        cache.set('chat_{}'.format(cid),
+                  Chat(cid=cid, title=title))
         db.commit()
 
     @staticmethod
     def get(cid):
-        q = db.query(Chat).filter(Chat.cid == cid).all()
-        if q:
-            return q[0]
+        cached = cache.get('chat_{}'.format(cid))
+
+        if cached:
+            return cached
         else:
-            return False
+            q = db.query(Chat) \
+                .filter(Chat.cid == cid) \
+                .limit(1) \
+                .all()
+            if q:
+                cache.set('chat_{}'.format(cid), q[0])
+                return q[0]
+            else:
+                return False
 
     @staticmethod
     def update(cid, update):
-        entity = db.query(Chat).filter(Chat.cid == cid)
-        entity.update(update)
+        chat = db.query(Chat).filter(Chat.cid == cid)
+        chat.update(update)
         db.commit()
 
 
@@ -136,9 +151,12 @@ class Entity(Base):
 
     @staticmethod
     def get(cid, type, title):
-        q = db.query(Entity).filter(Entity.cid == cid,
-                                    Entity.type == type,
-                                    Entity.title == title).all()
+        q = db.query(Entity) \
+            .filter(Entity.cid == cid,
+                    Entity.type == type,
+                    Entity.title == title) \
+            .limit(1) \
+            .all()
         if q:
             return q[0]
         else:
@@ -170,25 +188,40 @@ class UserStat(Base):
     def __repr__(self):
         return "<UserStat('{}', '{}', '{}')>".format(self.cid, self.uid, self.msg_count)
 
-    def add(self, uid, cid, msg_count):
+    def add(self, uid, cid, msg_count=1):
         user_stat = self.get(uid, cid)
 
         if user_stat:
             self.update(uid, cid, int(user_stat.msg_count) + msg_count)
+            cache.set('ustat_{}_{}'.format(uid, cid), UserStat(uid=uid,
+                                                               cid=cid,
+                                                               msg_count=int(user_stat.msg_count) + msg_count))
         else:
-            db.add(UserStat(uid=uid,
-                            cid=cid,
-                            msg_count=1))
+            c = UserStat(uid=uid,
+                         cid=cid,
+                         msg_count=msg_count)
+            db.add(c)
+            cache.set('ustat_{}_{}'.format(uid, cid), c)
+
         db.commit()
 
     @staticmethod
     def get(uid, cid):
-        q = db.query(UserStat).filter(UserStat.cid == cid,
-                                      UserStat.uid == uid).all()
-        if q:
-            return q[0]
+        cached = cache.get('ustat_{}_{}'.format(uid, cid))
+
+        if cached:
+            return cached
         else:
-            return False
+            q = db.query(UserStat) \
+                .filter(UserStat.cid == cid,
+                        UserStat.uid == uid) \
+                .limit(1) \
+                .all()
+            if q:
+                cache.set('ustat_{}_{}'.format(uid, cid), q[0])
+                return q[0]
+            else:
+                return False
 
     @staticmethod
     def update(uid, cid, msg_count):
@@ -224,33 +257,44 @@ class ChatStat(Base):
         if chat_stat:
             last_day = datetime.fromtimestamp(timestamp=chat_stat.last_time).day
 
+            c = ChatStat(cid=cid, msg_count=int(chat_stat.msg_count) + msg_count,
+                         users_count=int(chat_stat.users_count) + users_count,
+                         last_time=last_time)
+
             if last_day < today:
-                db.add(ChatStat(cid=cid, msg_count=int(chat_stat.msg_count) + msg_count,
-                                users_count=int(chat_stat.users_count) + users_count,
-                                last_time=last_time))
+                db.add(c)
             else:
                 self.update(cid, msg_count=int(chat_stat.msg_count) + msg_count,
                             users_count=int(chat_stat.users_count) + users_count,
                             last_time=last_time)
-        else:
-            db.add(ChatStat(cid=cid,
-                            msg_count=msg_count,
-                            users_count=users_count,
-                            last_time=last_time))
 
+        else:
+            c = ChatStat(cid=cid,
+                         msg_count=msg_count,
+                         users_count=users_count,
+                         last_time=last_time)
+            db.add(c)
+
+        cache.set('cstat_{}'.format(cid), c)
         db.commit()
 
     @staticmethod
     def get(cid):
-        q = db.query(ChatStat) \
-            .filter(ChatStat.cid == cid) \
-            .order_by(ChatStat.id.desc()) \
-            .limit(1) \
-            .all()
-        if q:
-            return q[0]
+        cached = cache.get('cstat_{}'.format(cid))
+
+        if cached:
+            return cached
         else:
-            return False
+            q = db.query(ChatStat) \
+                .filter(ChatStat.cid == cid) \
+                .order_by(ChatStat.id.desc()) \
+                .limit(1) \
+                .all()
+            if q:
+                cache.set('cstat_{}'.format(cid), q[0])
+                return q[0]
+            else:
+                return False
 
     @staticmethod
     def update(cid, users_count, msg_count, last_time):
@@ -295,6 +339,94 @@ class Stack:
 
     def clear(self):
         self.stack.clear()
+
+
+class Stats:
+    def get_user(self, user_id, chat_id=None):
+        all_msg_count = 0
+        groups = []
+
+        # All messages
+        q = db.query(UserStat).filter(UserStat.uid == user_id).all()
+        if q:
+            for row in q:
+                all_msg_count += row.msg_count
+                groups.append(row.cid)
+
+        if chat_id:
+            user = UserStat().get(user_id, chat_id)
+            if user:
+                return {
+                    'msg_count': all_msg_count,
+                    'group_msg_count': user.msg_count,
+                    'percent': self.number_format(user.msg_count * 100 / all_msg_count, 2)
+                }
+
+        return {
+            'msg_count': all_msg_count,
+            'groups': groups
+        }
+
+    def get_chat(self, chat_id):
+        all_msg_count = 0
+        current_users = 0
+        top_users = ''
+        popular_links = ''
+
+        # All messages in group and active users
+        q = db.query(ChatStat) \
+            .filter(ChatStat.cid == chat_id) \
+            .order_by(ChatStat.id.desc()) \
+            .all()
+        if q:
+            for row in q:
+                all_msg_count += row.msg_count
+            current_users = q[0].users_count
+
+        # Top-5 generation
+        q = db.query(UserStat, User) \
+            .join(User, User.uid == UserStat.uid) \
+            .filter(UserStat.cid == chat_id) \
+            .order_by(UserStat.msg_count.desc()) \
+            .limit(5) \
+            .all()
+        if q:
+            i = 0
+            for stats, user in q:
+                i += 1
+                if all_msg_count is not 0:
+                    top_users += ' *{}. {}* — {} ({}%)\n'.format(i, user.fullname,
+                                                                 stats.msg_count,
+                                                                 self.number_format(
+                                                                     stats.msg_count * 100 / all_msg_count,
+                                                                     2))
+                else:
+                    top_users += ' *{}. {}* — {}\n'.format(i, user.fullname,
+                                                           stats.msg_count)
+
+        # Top links generation
+        q = db.query(Entity) \
+            .filter(Entity.cid == chat_id,
+                    Entity.type == 'url') \
+            .order_by(Entity.count.desc()) \
+            .limit(3) \
+            .all()
+        if q:
+            i = 0
+            for url in q:
+                i += 1
+                popular_links += ' *{}. {}* — {}\n'.format(i, url.title,
+                                                           url.count)
+        return {
+            'msg_count': all_msg_count,
+            'current_users': current_users,
+            'top_users': top_users,
+            'popular_links': popular_links
+        }
+
+    @staticmethod
+    def number_format(num, places=0):
+        return locale.format("%.*f", (places, num), True)
 
 
 engine = create_engine(DATABASE, convert_unicode=True, echo=False)
