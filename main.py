@@ -14,6 +14,7 @@ def main():
     job_queue.put(handlers.job, 15, repeat=True)
 
     dp.add_handler(CommandHandler('start', handlers.start))
+    dp.add_handler(CommandHandler('stat', handlers.stat))
     dp.add_handler(CommandHandler('me', handlers.me))
     dp.add_handler(MessageHandler([Filters.text,
                                    Filters.photo,
