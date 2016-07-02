@@ -2,9 +2,9 @@
 __author__ = 'CubexX'
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Text, create_engine
+from sqlalchemy import Column, Integer, String, Text, BigInteger, create_engine
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import DATABASE, cache
 import time
 import locale
@@ -31,29 +31,43 @@ class User(Base):
 
     def add(self, uid, username, fullname):
         user = self.get(uid)
+        update = {}
 
         if user:
-            return user
+            if user.username != username:
+                update['username'] = username
+
+            if user.fullname != fullname:
+                update['fullname'] = fullname
+
+            if update:
+                self.update(uid, update)
         else:
             db.add(User(uid=uid,
                         username=username,
                         fullname=fullname))
             db.commit()
 
-            return User(uid=uid,
-                        username=username,
-                        fullname=fullname)
+        cache.set('user_'.format(uid), User(uid=uid,
+                                            username=username,
+                                            fullname=fullname))
 
     @staticmethod
     def get(uid):
-        q = db.query(User) \
-            .filter(User.uid == uid) \
-            .limit(1) \
-            .all()
-        if q:
-            return q[0]
+        cached = cache.get('user_{}'.format(uid))
+
+        if cached:
+            return cached
         else:
-            return False
+            q = db.query(User) \
+                .filter(User.uid == uid) \
+                .limit(1) \
+                .all()
+            if q:
+                cache.set('user_{}'.format(uid), q[0])
+                return q[0]
+            else:
+                return False
 
     @staticmethod
     def update(uid, update):
@@ -66,7 +80,7 @@ class Chat(Base):
     __tablename__ = 'chats'
 
     id = Column('id', Integer, primary_key=True)
-    cid = Column('cid', Integer)
+    cid = Column('cid', BigInteger)
     title = Column('title', Text)
 
     def __init__(self, id=None, cid=None, title=None):
@@ -100,6 +114,7 @@ class Chat(Base):
         else:
             q = db.query(Chat) \
                 .filter(Chat.cid == cid) \
+                .order_by(Chat.id.desc()) \
                 .limit(1) \
                 .all()
             if q:
@@ -119,7 +134,7 @@ class Entity(Base):
     __tablename__ = 'entities'
 
     id = Column('id', Integer, primary_key=True)
-    cid = Column('cid', Integer)
+    cid = Column('cid', BigInteger)
     type = Column('type', String(20))
     title = Column('title', Text)
     count = Column('count', Integer)
@@ -170,20 +185,29 @@ class Entity(Base):
         entity.update(update)
         db.commit()
 
+    @staticmethod
+    def update_all(cid, update):
+        entity = db.query(Entity).filter(Entity.cid == cid)
+
+        entity.update(update)
+        db.commit()
+
 
 class UserStat(Base):
     __tablename__ = 'user_stats'
 
     id = Column('id', Integer, primary_key=True)
     uid = Column('uid', Integer)
-    cid = Column('cid', Integer)
+    cid = Column('cid', BigInteger)
     msg_count = Column('msg_count', Integer, default=0)
+    last_activity = Column('last_activity', Integer)
 
-    def __init__(self, id=None, uid=None, cid=None, msg_count=None):
+    def __init__(self, id=None, uid=None, cid=None, msg_count=None, last_activity=None):
         self.id = id
         self.uid = uid
         self.cid = cid
         self.msg_count = msg_count
+        self.last_activity = last_activity
 
     def __repr__(self):
         return "<UserStat('{}', '{}', '{}')>".format(self.cid, self.uid, self.msg_count)
@@ -192,14 +216,17 @@ class UserStat(Base):
         user_stat = self.get(uid, cid)
 
         if user_stat:
-            self.update(uid, cid, int(user_stat.msg_count) + msg_count)
+            self.update(uid, cid, {'msg_count': int(user_stat.msg_count) + msg_count,
+                                   'last_activity': int(time.time())})
             cache.set('ustat_{}_{}'.format(uid, cid), UserStat(uid=uid,
                                                                cid=cid,
-                                                               msg_count=int(user_stat.msg_count) + msg_count))
+                                                               msg_count=int(user_stat.msg_count) + msg_count,
+                                                               last_activity=int(time.time())))
         else:
             c = UserStat(uid=uid,
                          cid=cid,
-                         msg_count=msg_count)
+                         msg_count=msg_count,
+                         last_activity=int(time.time()))
             db.add(c)
             cache.set('ustat_{}_{}'.format(uid, cid), c)
 
@@ -224,10 +251,10 @@ class UserStat(Base):
                 return False
 
     @staticmethod
-    def update(uid, cid, msg_count):
+    def update(uid, cid, update):
         user_stat = db.query(UserStat).filter(UserStat.cid == cid,
                                               UserStat.uid == uid)
-        user_stat.update({'msg_count': msg_count})
+        user_stat.update(update)
         db.commit()
 
 
@@ -235,7 +262,7 @@ class ChatStat(Base):
     __tablename__ = 'chat_stats'
 
     id = Column('id', Integer, primary_key=True)
-    cid = Column('cid', Integer)
+    cid = Column('cid', BigInteger)
     users_count = Column('users_count', Integer, default=0)
     msg_count = Column('msg_count', Integer, default=0)
     last_time = Column('last_time', Integer)
@@ -261,13 +288,15 @@ class ChatStat(Base):
                          users_count=int(chat_stat.users_count) + users_count,
                          last_time=last_time)
 
-            if last_day < today:
+            if (timedelta(today).days - timedelta(last_day).days) != 0:
+                c = ChatStat(cid=cid, msg_count=int(chat_stat.msg_count) + msg_count,
+                             users_count=0,
+                             last_time=last_time)
                 db.add(c)
             else:
-                self.update(cid, msg_count=int(chat_stat.msg_count) + msg_count,
-                            users_count=int(chat_stat.users_count) + users_count,
-                            last_time=last_time)
-
+                self.update(cid, {'msg_count': int(chat_stat.msg_count) + msg_count,
+                                  'users_count': int(chat_stat.users_count) + users_count,
+                                  'last_time': last_time})
         else:
             c = ChatStat(cid=cid,
                          msg_count=msg_count,
@@ -297,16 +326,14 @@ class ChatStat(Base):
                 return False
 
     @staticmethod
-    def update(cid, users_count, msg_count, last_time):
+    def update(cid, update):
         sq = db.query(ChatStat.id) \
             .filter(ChatStat.cid == cid) \
             .order_by(ChatStat.id.desc()).limit(1).all()
 
         db.query(ChatStat) \
             .filter(ChatStat.id == sq[0][0]) \
-            .update({'msg_count': msg_count,
-                     'users_count': users_count,
-                     'last_time': last_time})
+            .update(update)
         db.commit()
 
 
@@ -319,6 +346,7 @@ class Stack:
     def send(self):
         cids_list = self.stack
 
+        # WTF???
         # TODO: fix this
         counter = {x['cid']: {'msgs': 0, 'usrs': 0} for x in cids_list}
         for ccid in counter.keys():
@@ -427,6 +455,21 @@ class Stats:
     @staticmethod
     def number_format(num, places=0):
         return locale.format("%.*f", (places, num), True)
+
+    @staticmethod
+    def me_format(fullname, username, group_msg_count, percent, msg_count):
+        uname = ''
+        if username is not '':
+            uname = ' (@{})'.format(username)
+
+        msg = '{}{}:\n' \
+              ' Сообщений в этом чате: {} ({}%)\n' \
+              ' Сообщений всего: {}'.format(fullname,
+                                            uname,
+                                            group_msg_count,
+                                            percent,
+                                            msg_count)
+        return msg
 
 
 engine = create_engine(DATABASE, convert_unicode=True, echo=False)

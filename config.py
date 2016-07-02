@@ -5,7 +5,7 @@ import logging
 import memcache
 
 TOKEN = ""
-DATABASE = 'mysql://user:pass@localhost/table'
+DATABASE = 'mysql://user:pass@localhost/table?charset=utf8mb4'
 SITE_URL = ''
 
 cache = memcache.Client(['127.0.0.1:11211'], debug=1)
