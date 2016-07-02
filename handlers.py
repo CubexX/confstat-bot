@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 __author__ = 'CubexX'
 
-from models import Entity, Chat, User, UserStat, Stack, Stats
+from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat
 from config import SITE_URL, logger
 from telegram import ParseMode
 import re
@@ -22,7 +22,7 @@ def stat(bot, update):
     user_id = update.message.from_user.id
     chat_type = update.message.chat.type
 
-    if chat_type == 'group':
+    if chat_type == 'group' or chat_type == 'supergroup':
         msg = '{}/group/{}\n'.format(SITE_URL, chat_id)
         info = Stats().get_chat(chat_id)
 
@@ -68,7 +68,7 @@ def me(bot, update):
 
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
-    if chat_type == 'group':
+    if chat_type == 'group' or chat_type == 'supergroup':
         info = Stats().get_user(user_id, chat_id)
         msg = Stats().me_format(user_fullname,
                                 username,
@@ -92,7 +92,7 @@ def message(bot, update):
     chat_title = update.message.chat.title
 
     # If message from group
-    if chat_type == 'group':
+    if chat_type == 'group' or chat_type == 'supergroup':
         # Add chat and user to DB
         User().add(user_id, username, user_fullname)
         Chat().add(chat_id, chat_title)
@@ -164,3 +164,15 @@ def message(bot, update):
 
 def job(bot):
     Stack().send()
+
+
+def update_to_supergroup(bot, update):
+    old_id = update.message.migrate_from_chat_id
+    new_id = update.message.chat_id
+    user_id = update.message.from_user.id
+
+    if old_id:
+        UserStat().update(user_id, old_id, {'cid': new_id})
+        Entity().update_all(old_id, {'cid': new_id})
+        Chat().update(old_id, {'cid': new_id})
+        ChatStat().update(old_id, {'cid': new_id})
