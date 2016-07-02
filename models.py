@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text, BigInteger, create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, timedelta
-from config import DATABASE, cache
-import time
+from sqlalchemy.orm import sessionmaker
+from config import CONFIG
+from main import cache
 import locale
+import time
 
 Base = declarative_base()
 
@@ -472,7 +473,7 @@ class Stats:
         return msg
 
 
-engine = create_engine(DATABASE, convert_unicode=True, echo=False)
+engine = create_engine(CONFIG['database'], convert_unicode=True, echo=False)
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)

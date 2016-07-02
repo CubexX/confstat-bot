@@ -1,0 +1,16 @@
+{
+  "bot_token": "",
+  "database": "mysql://user:pass@localhost/table?charset=utf8mb4",
+  "site_url": "",
+  "cache": {
+    "servers": [
+      "127.0.0.1:11211"
+    ],
+    "debug": true
+  },
+  "logging": {
+    "format": "[%(asctime)s][%(levelname)s] - %(message)s",
+    "level": "info",
+    "file": null
+  }
+}

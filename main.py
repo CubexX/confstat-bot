@@ -2,16 +2,27 @@
 __author__ = 'CubexX'
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from config import CONFIG
 import handlers
-from config import TOKEN
+import memcache
+import logging
+
+cache = memcache.Client(CONFIG['cache']['servers'], debug=CONFIG['cache']['debug'])
+
+logging.basicConfig(
+    format=CONFIG['logging']['format'],
+    level=logging.INFO,
+    filename=CONFIG['logging']['file']
+)
+logger = logging.getLogger(__name__)
 
 
 def main():
-    updater = Updater(TOKEN)
+    updater = Updater(CONFIG['bot_token'])
     dp = updater.dispatcher
 
     job_queue = updater.job_queue
-    job_queue.put(handlers.job, 15, repeat=True)
+    job_queue.put(handlers.job, CONFIG['query_interval'], repeat=True)
 
     dp.add_handler(CommandHandler('start', handlers.start))
     dp.add_handler(CommandHandler('stat', handlers.stat))
@@ -26,6 +37,7 @@ def main():
                                    Filters.voice,
                                    Filters.document], handlers.message))
 
+    logger.info('Bot started')
     updater.start_polling()
     updater.idle()
 

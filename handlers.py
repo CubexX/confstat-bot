@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-import time
-from datetime import datetime, timedelta
-
 __author__ = 'CubexX'
 
 from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat
-from config import SITE_URL, logger
+from datetime import datetime, timedelta
 from telegram import ParseMode
+from config import CONFIG
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 
 def start(bot, update):
@@ -23,7 +24,7 @@ def stat(bot, update):
     chat_type = update.message.chat.type
 
     if chat_type == 'group' or chat_type == 'supergroup':
-        msg = '{}/group/{}\n'.format(SITE_URL, chat_id)
+        msg = '{}/group/{}\n'.format(CONFIG['site_url'], chat_id)
         info = Stats().get_chat(chat_id)
 
         msg += 'Сообщений: {}\n' \
