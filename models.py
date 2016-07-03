@@ -421,14 +421,10 @@ class Stats:
         popular_links = ''
 
         # All messages in group and active users
-        q = db.query(ChatStat) \
-            .filter(ChatStat.cid == chat_id) \
-            .order_by(ChatStat.id.desc()) \
-            .all()
+        q = ChatStat().get(chat_id)
         if q:
-            for row in q:
-                all_msg_count += row.msg_count
-            current_users = q[0].users_count
+            all_msg_count = q.msg_count
+            current_users = q.users_count
 
         # Top-5 generation
         q = db.query(UserStat, User) \
