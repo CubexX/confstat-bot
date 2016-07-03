@@ -290,12 +290,14 @@ class ChatStat(Base):
 
             c = ChatStat(cid=cid, msg_count=int(chat_stat.msg_count) + msg_count,
                          users_count=int(chat_stat.users_count) + users_count,
-                         last_time=last_time)
+                         last_time=last_time,
+                         chat_hash=self.generate_hash(cid))
 
             if (timedelta(today).days - timedelta(last_day).days) != 0:
                 c = ChatStat(cid=cid, msg_count=int(chat_stat.msg_count) + msg_count,
                              users_count=0,
-                             last_time=last_time)
+                             last_time=last_time,
+                             chat_hash=self.generate_hash(cid))
                 db.add(c)
             else:
                 self.update(cid, {'msg_count': int(chat_stat.msg_count) + msg_count,
