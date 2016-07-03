@@ -3,6 +3,7 @@
   "database": "mysql://user:pass@localhost/table?charset=utf8mb4",
   "site_url": "",
   "query_interval": 15,
+  "salt": "super_salt",
   "cache": {
     "servers": [
       "127.0.0.1:11211"
