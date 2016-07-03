@@ -5,7 +5,9 @@ from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat
 from datetime import datetime, timedelta
 from telegram import ParseMode
 from config import CONFIG
+from main import cache
 import logging
+import time
 import re
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,12 @@ def stat(bot, update):
     user_id = update.message.from_user.id
     chat_type = update.message.chat.type
 
-    if chat_type == 'group' or chat_type == 'supergroup':
+    last_call = cache.get('last_{}'.format(chat_id))
+
+    if not last_call:
+        cache.set('last_{}'.format(chat_id), int(time.time()) + 5)
+
+    if (int(time.time()) - last_call) >= 5 and chat_type == 'group' or chat_type == 'supergroup':
         msg = '{}/group/{}\n'.format(CONFIG['site_url'], chat_id)
         info = Stats().get_chat(chat_id)
 
@@ -36,6 +43,8 @@ def stat(bot, update):
             msg += 'Популярные ссылки:\n{}'.format(info['popular_links'])
 
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+        # Update last call
+        cache.set('last_{}'.format(chat_id), int(time.time()))
 
 
 def me(bot, update):
