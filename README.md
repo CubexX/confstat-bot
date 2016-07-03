@@ -10,11 +10,11 @@ pip3 install -r requirements.txt
 ```
 Usage
 -------
-Edit config.py:
-```python
-TOKEN = "your_token"
-DATABASE = 'mysql://user:password@localhost/database?charset=utf8mb4'
-SITE_URL = 'http://your.site.name'
+Edit config.json:
+```js
+"bot_token": "your_token",
+"database": "mysql://user:password@localhost/database?charset=utf8mb4",
+"site_url": "http://your.site.name"
 ```
 And start bot:
 ```bash
