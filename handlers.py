@@ -33,20 +33,20 @@ def stat(bot, update):
 
     if (int(time.time()) - last_call) >= 5:
         if chat_type == 'group' or chat_type == 'supergroup':
-            msg = '{}/group/{}\n'.format(CONFIG['site_url'], chat_id)
+            # Get stats for group
             info = Stats().get_chat(chat_id)
 
-            msg += 'Сообщений: {}\n' \
-                   'Активных пользовтелей: {}\n\n' \
-                   'Топ-5:\n{}\n'.format(info['msg_count'],
-                                         info['current_users'],
-                                         info['top_users'])
-            if info['popular_links'] is not '':
-                msg += 'Популярные ссылки:\n{}'.format(info['popular_links'])
-
+            # Get msg text for /stat
+            msg = Stats().stat_format(chat_id,
+                                      info['msg_count'],
+                                      info['current_users'],
+                                      info['top_users'],
+                                      info['popular_links'])
             bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+
             # Update last call
             cache.set('last_{}'.format(chat_id), int(time.time()))
+            logger.info('Group {} requested stats'.format(chat_id))
 
 
 def me(bot, update):
@@ -89,6 +89,8 @@ def me(bot, update):
                                 info['msg_count'])
 
         bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
+
+    logger.info('User {} requested stats'.format(user_id))
 
 
 def message(bot, update):
