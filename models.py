@@ -332,8 +332,9 @@ class ChatStat(Base):
             else:
                 return False
 
-    @staticmethod
-    def update(cid, update):
+    def update(self, cid, update):
+        update['chat_hash'] = self.generate_hash(cid)
+
         sq = db.query(ChatStat.id) \
             .filter(ChatStat.cid == cid) \
             .order_by(ChatStat.id.desc()).limit(1).all()
@@ -491,15 +492,16 @@ class Stats:
 
     @staticmethod
     def stat_format(cid, msg_count, current_users, top_users, popular_links):
-        msg = '{}/group/{}\n'.format(CONFIG['site_url'], cid)
-
-        msg += 'Сообщений: {}\n' \
-               'Активных пользовтелей сегодня: {}\n\n'.format(msg_count, current_users)
+        msg = 'Сообщений: {}\n' \
+              'Активных пользовтелей сегодня: {}\n\n'.format(msg_count, current_users)
         if top_users is not '':
             msg += 'Топ-5:\n{}\n'.format(top_users)
 
         if popular_links is not '':
-            msg += 'Популярные ссылки:\n{}'.format(popular_links)
+            msg += 'Популярные ссылки:\n{}\n'.format(popular_links)
+
+        # Link to web-site with stats
+        msg += '[Подробная статистика]({}/group/{})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
 
         return msg
 
