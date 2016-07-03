@@ -29,22 +29,24 @@ def stat(bot, update):
 
     if not last_call:
         cache.set('last_{}'.format(chat_id), int(time.time()) + 5)
+        last_call = int(time.time()) + 5
 
-    if (int(time.time()) - last_call) >= 5 and chat_type == 'group' or chat_type == 'supergroup':
-        msg = '{}/group/{}\n'.format(CONFIG['site_url'], chat_id)
-        info = Stats().get_chat(chat_id)
+    if (int(time.time()) - last_call) >= 5:
+        if chat_type == 'group' or chat_type == 'supergroup':
+            msg = '{}/group/{}\n'.format(CONFIG['site_url'], chat_id)
+            info = Stats().get_chat(chat_id)
 
-        msg += 'Сообщений: {}\n' \
-               'Активных пользовтелей: {}\n\n' \
-               'Топ-5:\n{}\n'.format(info['msg_count'],
-                                     info['current_users'],
-                                     info['top_users'])
-        if info['popular_links'] is not '':
-            msg += 'Популярные ссылки:\n{}'.format(info['popular_links'])
+            msg += 'Сообщений: {}\n' \
+                   'Активных пользовтелей: {}\n\n' \
+                   'Топ-5:\n{}\n'.format(info['msg_count'],
+                                         info['current_users'],
+                                         info['top_users'])
+            if info['popular_links'] is not '':
+                msg += 'Популярные ссылки:\n{}'.format(info['popular_links'])
 
-        bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
-        # Update last call
-        cache.set('last_{}'.format(chat_id), int(time.time()))
+            bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+            # Update last call
+            cache.set('last_{}'.format(chat_id), int(time.time()))
 
 
 def me(bot, update):
