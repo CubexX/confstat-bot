@@ -4,7 +4,6 @@ __author__ = 'CubexX'
 from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat
 from datetime import datetime, timedelta
 from telegram import ParseMode
-from config import CONFIG
 from main import cache
 import logging
 import time
