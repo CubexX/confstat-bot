@@ -1,6 +1,7 @@
 Confstat bot
 ====
 ![image](http://i.imgur.com/P3HS3hm.png)
+
 This [bot](http://telegram.me/confstatbot) collects statistics from your chat.
 
 Installation
