@@ -4,8 +4,9 @@ __author__ = 'CubexX'
 from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat
 from datetime import datetime, timedelta
 from telegram import ParseMode
-from config import CONFIG
+from main import cache
 import logging
+import time
 import re
 
 logger = logging.getLogger(__name__)
@@ -23,19 +24,27 @@ def stat(bot, update):
     user_id = update.message.from_user.id
     chat_type = update.message.chat.type
 
-    if chat_type == 'group' or chat_type == 'supergroup':
-        msg = '{}/group/{}\n'.format(CONFIG['site_url'], chat_id)
-        info = Stats().get_chat(chat_id)
+    last_call = cache.get('last_{}'.format(chat_id))
 
-        msg += 'Сообщений: {}\n' \
-               'Активных пользовтелей: {}\n\n' \
-               'Топ-5:\n{}\n'.format(info['msg_count'],
-                                     info['current_users'],
-                                     info['top_users'])
-        if info['popular_links'] is not '':
-            msg += 'Популярные ссылки:\n{}'.format(info['popular_links'])
+    if not last_call:
+        cache.set('last_{}'.format(chat_id), int(time.time()) + 5)
+        last_call = int(time.time()) + 5
 
-        bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+    if (int(time.time()) - last_call) >= 5:
+        if chat_type == 'group' or chat_type == 'supergroup':
+            # Get stats for group
+            info = Stats().get_chat(chat_id)
+
+            # Get msg text for /stat
+            msg = Stats().stat_format(chat_id,
+                                      info['msg_count'],
+                                      info['current_users'],
+                                      info['top_users'])
+            bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+
+            # Update last call
+            cache.set('last_{}'.format(chat_id), int(time.time()))
+            logger.info('Group {} requested stats'.format(chat_id))
 
 
 def me(bot, update):
@@ -62,8 +71,8 @@ def me(bot, update):
                                                       info['group_msg_count'],
                                                       info['percent'])
 
-        msg = 'Всего сообщений: {}\n' \
-              'Список групп:\n' \
+        msg = 'Total messages: {}\n' \
+              'Groups list:\n' \
               '{}'.format(info['msg_count'],
                           groups)
 
@@ -78,6 +87,8 @@ def me(bot, update):
                                 info['msg_count'])
 
         bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
+
+    logger.info('User {} requested stats'.format(user_id))
 
 
 def message(bot, update):
@@ -177,3 +188,7 @@ def update_to_supergroup(bot, update):
         Entity().update_all(old_id, {'cid': new_id})
         Chat().update(old_id, {'cid': new_id})
         ChatStat().update(old_id, {'cid': new_id})
+
+    bot.sendMessage(new_id, 'Group was updated to supergroup')
+    cache.delete('last_{}'.format(old_id))
+    logger.info('Group {} was updated to supergroup {}'.format(old_id, new_id))
