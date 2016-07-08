@@ -39,8 +39,7 @@ def stat(bot, update):
             msg = Stats().stat_format(chat_id,
                                       info['msg_count'],
                                       info['current_users'],
-                                      info['top_users'],
-                                      info['popular_links'])
+                                      info['top_users'])
             bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
             # Update last call
