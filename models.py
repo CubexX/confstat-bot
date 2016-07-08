@@ -447,24 +447,10 @@ class Stats:
                     top_users += ' *{}. {}* — {}\n'.format(i, user.fullname,
                                                            stats.msg_count)
 
-        # Top links generation
-        q = db.query(Entity) \
-            .filter(Entity.cid == chat_id,
-                    Entity.type == 'url') \
-            .order_by(Entity.count.desc()) \
-            .limit(3) \
-            .all()
-        if q:
-            i = 0
-            for url in q:
-                i += 1
-                popular_links += ' *{}. {}* — {}\n'.format(i, url.title,
-                                                           url.count)
         return {
             'msg_count': all_msg_count,
             'current_users': current_users,
-            'top_users': top_users,
-            'popular_links': popular_links
+            'top_users': top_users
         }
 
     @staticmethod
@@ -487,14 +473,11 @@ class Stats:
         return msg
 
     @staticmethod
-    def stat_format(cid, msg_count, current_users, top_users, popular_links):
+    def stat_format(cid, msg_count, current_users, top_users):
         msg = 'Сообщений: {}\n' \
               'Активных пользовтелей сегодня: {}\n\n'.format(msg_count, current_users)
         if top_users is not '':
             msg += 'Топ-5:\n{}\n'.format(top_users)
-
-        if popular_links is not '':
-            msg += 'Популярные ссылки:\n{}\n'.format(popular_links)
 
         # Link to web-site with stats
         msg += '[Подробная статистика]({}/group/{})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
