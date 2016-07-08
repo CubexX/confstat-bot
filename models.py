@@ -474,13 +474,13 @@ class Stats:
 
     @staticmethod
     def stat_format(cid, msg_count, current_users, top_users):
-        msg = 'Messages: {}\n' \
-              'Today active users: {}\n\n'.format(msg_count, current_users)
+        msg = 'Сообщений: {}\n' \
+              'Активных пользовтелей сегодня: {}\n\n'.format(msg_count, current_users)
         if top_users is not '':
-            msg += 'Top-5:\n{}\n'.format(top_users)
+            msg += 'Топ-5:\n{}\n'.format(top_users)
 
         # Link to web-site with stats
-        msg += '[More]({}/group/{})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
+        msg += '[Подробная статистика]({}/group/{})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
 
         return msg
 
