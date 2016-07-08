@@ -482,7 +482,7 @@ class Stats:
         # Link to web-site with stats
         msg += '[More]({}/group/{})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
 
-        return msgl
+        return msg
 
 
 engine = create_engine(CONFIG['database'], convert_unicode=True, echo=False)
