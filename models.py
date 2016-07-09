@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from sqlalchemy import Column, Integer, String, Text, BigInteger, create_engine
+from sqlalchemy import Column, Integer, String, Text, BigInteger, Boolean, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, timedelta
 from sqlalchemy.orm import sessionmaker
@@ -21,12 +21,14 @@ class User(Base):
     uid = Column('uid', Integer)
     username = Column('username', Text)
     fullname = Column('fullname', Text)
+    public = Column('public', Boolean, default=False)
 
-    def __init__(self, id=None, uid=None, username=None, fullname=None):
+    def __init__(self, id=None, uid=None, username=None, fullname=None, public=None):
         self.id = id
         self.uid = uid
         self.username = username
         self.fullname = fullname
+        self.public = public
 
     def __repr__(self):
         return "<User('{}', '{}')>".format(self.uid, self.fullname)
@@ -391,14 +393,12 @@ class Stack:
 class Stats:
     def get_user(self, user_id, chat_id=None):
         all_msg_count = 0
-        groups = []
 
         # All messages
         q = db.query(UserStat).filter(UserStat.uid == user_id).all()
         if q:
             for row in q:
                 all_msg_count += row.msg_count
-                groups.append(row.cid)
 
         if chat_id:
             user = UserStat().get(user_id, chat_id)
@@ -410,8 +410,7 @@ class Stats:
                 }
 
         return {
-            'msg_count': all_msg_count,
-            'groups': groups
+            'msg_count': all_msg_count
         }
 
     def get_chat(self, chat_id):
