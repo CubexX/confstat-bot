@@ -27,8 +27,8 @@ def stat(bot, update):
     last_call = cache.get('last_{}'.format(chat_id))
 
     if not last_call:
-        cache.set('last_{}'.format(chat_id), int(time.time()) + 5)
-        last_call = int(time.time()) + 5
+        cache.set('last_{}'.format(chat_id), int(time.time()) - 5)
+        last_call = int(time.time()) - 5
 
     if (int(time.time()) - last_call) >= 5:
         if chat_type == 'group' or chat_type == 'supergroup':
@@ -67,13 +67,14 @@ def me(bot, update):
 
     if chat_type == 'group' or chat_type == 'supergroup':
         info = Stats().get_user(user_id, chat_id)
-        msg = Stats().me_format(user_fullname,
+        msg = Stats().me_format(user_id,
+                                user_fullname,
                                 username,
                                 info['group_msg_count'],
                                 info['percent'],
                                 info['msg_count'])
 
-        bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
+        bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id, parse_mode=ParseMode.MARKDOWN)
 
     logger.info('User {} requested stats'.format(user_id))
 
