@@ -4,7 +4,7 @@ __author__ = 'CubexX'
 from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat
 from datetime import datetime, timedelta
 from telegram import ParseMode
-from main import cache
+from main import cache, CONFIG
 import logging
 import time
 import re
@@ -16,7 +16,7 @@ def start(bot, update):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
 
-    bot.sendMessage(chat_id, '/stat\n/me')
+    bot.sendMessage(chat_id, '/stat\n/me\n/setprivacy - show/hide your stats')
 
 
 def stat(bot, update):
@@ -58,23 +58,10 @@ def me(bot, update):
 
     if chat_type == 'private':
         info = Stats().get_user(user_id)
-        groups = ''
-
-        i = 0
-        for group in info['groups']:
-            i += 1
-
-            info = Stats().get_user(user_id, group)
-
-            groups += ' *{}. {}* — {} ({}%)\n'.format(i,
-                                                      Chat().get(group).title,
-                                                      info['group_msg_count'],
-                                                      info['percent'])
-
-        msg = 'Total messages: {}\n' \
-              'Groups list:\n' \
-              '{}'.format(info['msg_count'],
-                          groups)
+        msg = 'Total messages: {}\n\n' \
+              '[More]({}/user/{})'.format(info['msg_count'],
+                                          CONFIG['site_url'],
+                                          user_id)
 
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
@@ -189,6 +176,32 @@ def update_to_supergroup(bot, update):
         Chat().update(old_id, {'cid': new_id})
         ChatStat().update(old_id, {'cid': new_id})
 
-    bot.sendMessage(new_id, 'Group was updated to supergroup')
-    cache.delete('last_{}'.format(old_id))
-    logger.info('Group {} was updated to supergroup {}'.format(old_id, new_id))
+        bot.sendMessage(new_id, 'Group was updated to supergroup')
+        cache.delete('last_{}'.format(old_id))
+        logger.info('Group {} was updated to supergroup {}'.format(old_id, new_id))
+
+
+def set_privacy(bot, update):
+    chat_id = update.message.chat_id
+    chat_type = update.message.chat.type
+    user_id = update.message.from_user.id
+    msg_id = update.message.message_id
+
+    user = User().get(user_id)
+
+    if user:
+        privacy = user.public
+
+        if privacy:
+            public = False
+            msg = 'Your statistics is *private*'
+        else:
+            public = True
+            msg = 'Your statistics is *public*'
+
+        User().update(user_id, {'public': public})
+        cache.delete('user_{}'.format(user_id))
+    else:
+        msg = 'Error!'
+
+    bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=msg_id)

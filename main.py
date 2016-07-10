@@ -27,6 +27,7 @@ def main():
     dp.add_handler(CommandHandler('start', handlers.start))
     dp.add_handler(CommandHandler('stat', handlers.stat))
     dp.add_handler(CommandHandler('me', handlers.me))
+    dp.add_handler(CommandHandler('setprivacy', handlers.set_privacy))
     dp.add_handler(MessageHandler([Filters.status_update], handlers.update_to_supergroup))
 
     dp.add_handler(MessageHandler([Filters.text,
