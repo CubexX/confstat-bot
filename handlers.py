@@ -27,8 +27,8 @@ def stat(bot, update):
     last_call = cache.get('last_{}'.format(chat_id))
 
     if not last_call:
-        cache.set('last_{}'.format(chat_id), int(time.time()) + 5)
-        last_call = int(time.time()) + 5
+        cache.set('last_{}'.format(chat_id), int(time.time()) - 5)
+        last_call = int(time.time()) - 5
 
     if (int(time.time()) - last_call) >= 5:
         if chat_type == 'group' or chat_type == 'supergroup':
