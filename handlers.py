@@ -176,7 +176,7 @@ def update_to_supergroup(bot, update):
         Chat().update(old_id, {'cid': new_id})
         ChatStat().update(old_id, {'cid': new_id})
 
-    bot.sendMessage(new_id, 'Group was updated to supergroup')
+    # bot.sendMessage(new_id, 'Group was updated to supergroup')
     cache.delete('last_{}'.format(old_id))
     logger.info('Group {} was updated to supergroup {}'.format(old_id, new_id))
 
