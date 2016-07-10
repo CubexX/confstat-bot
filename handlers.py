@@ -176,32 +176,32 @@ def update_to_supergroup(bot, update):
         Chat().update(old_id, {'cid': new_id})
         ChatStat().update(old_id, {'cid': new_id})
 
-    # bot.sendMessage(new_id, 'Group was updated to supergroup')
-    cache.delete('last_{}'.format(old_id))
-    logger.info('Group {} was updated to supergroup {}'.format(old_id, new_id))
+        bot.sendMessage(new_id, 'Group was updated to supergroup')
+        cache.delete('last_{}'.format(old_id))
+        logger.info('Group {} was updated to supergroup {}'.format(old_id, new_id))
 
 
 def set_privacy(bot, update):
     chat_id = update.message.chat_id
     chat_type = update.message.chat.type
     user_id = update.message.from_user.id
+    msg_id = update.message.message_id
 
-    if chat_type == 'private':
-        user = User().get(user_id)
+    user = User().get(user_id)
 
-        if user:
-            privacy = user.public
+    if user:
+        privacy = user.public
 
-            if privacy:
-                public = False
-                msg = 'Your statistics is *private*'
-            else:
-                public = True
-                msg = 'Your statistics is *public*'
-
-            User().update(user_id, {'public': public})
-            cache.delete('user_{}'.format(user_id))
+        if privacy:
+            public = False
+            msg = 'Your statistics is *private*'
         else:
-            msg = 'Error!'
+            public = True
+            msg = 'Your statistics is *public*'
 
-        bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+        User().update(user_id, {'public': public})
+        cache.delete('user_{}'.format(user_id))
+    else:
+        msg = 'Error!'
+
+    bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=msg_id)
