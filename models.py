@@ -457,18 +457,21 @@ class Stats:
         return locale.format("%.*f", (places, num), True)
 
     @staticmethod
-    def me_format(fullname, username, group_msg_count, percent, msg_count):
+    def me_format(uid, fullname, username, group_msg_count, percent, msg_count):
         uname = ''
         if username is not '':
             uname = ' (@{})'.format(username)
 
         msg = '{}{}:\n' \
               ' Messages in this group: {} ({}%)\n' \
-              ' Total messages: {}'.format(fullname,
+              ' Total messages: {}\n\n' \
+              ' [More]({}/user/{})'.format(fullname,
                                            uname,
                                            group_msg_count,
                                            percent,
-                                           msg_count)
+                                           msg_count,
+                                           CONFIG['site_url'],
+                                           uid)
         return msg
 
     @staticmethod

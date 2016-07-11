@@ -67,7 +67,8 @@ def me(bot, update):
 
     if chat_type == 'group' or chat_type == 'supergroup':
         info = Stats().get_user(user_id, chat_id)
-        msg = Stats().me_format(user_fullname,
+        msg = Stats().me_format(user_id,
+                                user_fullname,
                                 username,
                                 info['group_msg_count'],
                                 info['percent'],
