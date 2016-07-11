@@ -74,7 +74,7 @@ def me(bot, update):
                                 info['percent'],
                                 info['msg_count'])
 
-        bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id)
+        bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id, parse_mode=ParseMode.MARKDOWN)
 
     logger.info('User {} requested stats'.format(user_id))
 
