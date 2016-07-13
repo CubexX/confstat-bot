@@ -26,10 +26,12 @@ def stat(bot, update):
 
     last_call = cache.get('last_{}'.format(chat_id))
 
+    # First request
     if not last_call:
         cache.set('last_{}'.format(chat_id), int(time.time()) - 5)
         last_call = int(time.time()) - 5
 
+    # If last request was over 5 seconds ago
     if (int(time.time()) - last_call) >= 5:
         if chat_type == 'group' or chat_type == 'supergroup':
             # Get stats for group
@@ -52,23 +54,26 @@ def me(bot, update):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     username = update.message.from_user.username
-    user_fullname = " ".join([update.message.from_user.first_name,
-                              update.message.from_user.last_name])
+    fullname = " ".join([update.message.from_user.first_name,
+                         update.message.from_user.last_name])
     chat_type = update.message.chat.type
 
     if chat_type == 'private':
         info = Stats().get_user(user_id)
+        token = User.generate_token(user_id)
         msg = 'Total messages: {}\n\n' \
-              '[More]({}/user/{})'.format(info['msg_count'],
-                                          CONFIG['site_url'],
-                                          user_id)
+              '[More]({}/user/{}/{})'.format(info['msg_count'],
+                                             CONFIG['site_url'],
+                                             user_id,
+                                             token)
+        cache.set('user_token_{}'.format(user_id), token, 600)
 
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
     if chat_type == 'group' or chat_type == 'supergroup':
         info = Stats().get_user(user_id, chat_id)
         msg = Stats().me_format(user_id,
-                                user_fullname,
+                                fullname,
                                 username,
                                 info['group_msg_count'],
                                 info['percent'],
@@ -85,8 +90,8 @@ def message(bot, update):
     msg = update.message.text
 
     username = update.message.from_user.username
-    user_fullname = " ".join([update.message.from_user.first_name,
-                              update.message.from_user.last_name])
+    fullname = " ".join([update.message.from_user.first_name,
+                         update.message.from_user.last_name])
 
     chat_type = update.message.chat.type
     chat_title = update.message.chat.title
@@ -94,7 +99,7 @@ def message(bot, update):
     # If message from group
     if chat_type == 'group' or chat_type == 'supergroup':
         # Add chat and user to DB
-        User().add(user_id, username, user_fullname)
+        User().add(user_id, username, fullname)
         Chat().add(chat_id, chat_title)
 
         if update.message.photo:
@@ -113,7 +118,6 @@ def message(bot, update):
             Entity().add(chat_id, 'document', None)
 
         for entity in update.message.entities:
-
             # http://link.com
             if entity['type'] == 'url':
                 link = msg[entity['offset']:entity['offset'] + entity['length']]
@@ -136,7 +140,7 @@ def message(bot, update):
                 title = msg[entity['offset']:entity['offset'] + entity['length']]
                 Entity().add(cid=chat_id, type='mention', title=title)
 
-        user_stat = UserStat().get(user_id, chat_id)
+        user_stat = UserStat.get(user_id, chat_id)
 
         # If user already in group
         if user_stat:
@@ -172,10 +176,10 @@ def update_to_supergroup(bot, update):
     user_id = update.message.from_user.id
 
     if old_id:
-        UserStat().update(user_id, old_id, {'cid': new_id})
-        Entity().update_all(old_id, {'cid': new_id})
-        Chat().update(old_id, {'cid': new_id})
-        ChatStat().update(old_id, {'cid': new_id})
+        UserStat.update(user_id, old_id, {'cid': new_id})
+        Entity.update_all(old_id, {'cid': new_id})
+        Chat.update(old_id, {'cid': new_id})
+        ChatStat.update(old_id, {'cid': new_id})
 
         bot.sendMessage(new_id, 'Group was updated to supergroup')
         cache.delete('last_{}'.format(old_id))
@@ -188,7 +192,7 @@ def set_privacy(bot, update):
     user_id = update.message.from_user.id
     msg_id = update.message.message_id
 
-    user = User().get(user_id)
+    user = User.get(user_id)
 
     if user:
         privacy = user.public
@@ -200,9 +204,9 @@ def set_privacy(bot, update):
             public = True
             msg = 'Your statistics is *public*'
 
-        User().update(user_id, {'public': public})
+        User.update(user_id, {'public': public})
         cache.delete('user_{}'.format(user_id))
     else:
-        msg = 'Error!'
+        msg = 'User not found'
 
     bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=msg_id)

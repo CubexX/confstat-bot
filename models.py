@@ -55,6 +55,7 @@ class User(Base):
         cache.set('user_'.format(uid), User(uid=uid,
                                             username=username,
                                             fullname=fullname))
+        cache.delete('web_user_{}'.format(uid))
 
     @staticmethod
     def get(uid):
@@ -69,6 +70,7 @@ class User(Base):
                 .all()
             if q:
                 cache.set('user_{}'.format(uid), q[0])
+                cache.delete('web_user_{}'.format(uid))
                 return q[0]
             else:
                 return False
@@ -78,6 +80,19 @@ class User(Base):
         user = db.query(User).filter(User.uid == uid)
         user.update(update)
         db.commit()
+
+    @staticmethod
+    def generate_token(uid):
+        salt = str(CONFIG['salt']).encode('utf-8')
+        current_time = str(time.time()).encode('utf-8')
+        uid = str(uid).encode('utf-8')
+
+        t = MD5.new(uid)
+        t.update(salt)
+        t.update(current_time)
+        token = t.hexdigest()[:8]
+
+        return token
 
 
 class Chat(Base):
@@ -107,6 +122,7 @@ class Chat(Base):
 
         cache.set('chat_{}'.format(cid),
                   Chat(cid=cid, title=title))
+        cache.delete('web_chat_{}'.format(cid))
         db.commit()
 
     @staticmethod
@@ -123,6 +139,7 @@ class Chat(Base):
                 .all()
             if q:
                 cache.set('chat_{}'.format(cid), q[0])
+                cache.delete('web_chat_{}'.format(cid))
                 return q[0]
             else:
                 return False
@@ -334,8 +351,9 @@ class ChatStat(Base):
             else:
                 return False
 
-    def update(self, cid, update):
-        update['chat_hash'] = self.generate_hash(cid)
+    @staticmethod
+    def update(cid, update):
+        update['chat_hash'] = ChatStat.generate_hash(cid)
 
         sq = db.query(ChatStat.id) \
             .filter(ChatStat.cid == cid) \
