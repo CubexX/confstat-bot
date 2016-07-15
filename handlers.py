@@ -16,7 +16,12 @@ def start(bot, update):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
 
-    bot.sendMessage(chat_id, '/stat\n/me\n/setprivacy - show/hide your stats')
+    bot.sendMessage(chat_id, '/stat — get stats in group\n'
+                             '/me — get your stats\n'
+                             '/setprivacy — show/hide your stats\n\n'
+                             'Like bot? [Rate it!](https://storebot.me/bot/confstatbot)\n\n'
+                             'GitHub: [confstat-bot](https://github.com/CubexX/confstat-bot), '
+                             '[confstat-web](https://github.com/CubexX/confstat-web)', parse_mode=ParseMode.MARKDOWN)
 
 
 def stat(bot, update):
@@ -38,10 +43,10 @@ def stat(bot, update):
             info = Stats().get_chat(chat_id)
 
             # Get msg text for /stat
-            msg = Stats().stat_format(chat_id,
-                                      info['msg_count'],
-                                      info['current_users'],
-                                      info['top_users'])
+            msg = Stats.stat_format(chat_id,
+                                    info['msg_count'],
+                                    info['current_users'],
+                                    info['top_users'])
             bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
             # Update last call
@@ -61,23 +66,20 @@ def me(bot, update):
     if chat_type == 'private':
         info = Stats().get_user(user_id)
         token = User.generate_token(user_id)
-        msg = 'Total messages: {}\n\n' \
-              '[More]({}/user/{}/{})'.format(info['msg_count'],
-                                             CONFIG['site_url'],
-                                             user_id,
-                                             token)
+        msg = Stats.me_private_format(user_id, info['groups'], info['msg_count'], token)
+
         cache.set('user_token_{}'.format(user_id), token, 600)
 
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
     if chat_type == 'group' or chat_type == 'supergroup':
-        info = Stats().get_user(user_id, chat_id)
-        msg = Stats().me_format(user_id,
-                                fullname,
-                                username,
-                                info['group_msg_count'],
-                                info['percent'],
-                                info['msg_count'])
+        info = Stats.get_user(chat_id)
+        msg = Stats.me_format(user_id,
+                              fullname,
+                              username,
+                              info['group_msg_count'],
+                              info['percent'],
+                              info['msg_count'])
 
         bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id, parse_mode=ParseMode.MARKDOWN)
 
