@@ -55,6 +55,7 @@ class User(Base):
         cache.set('user_'.format(uid), User(uid=uid,
                                             username=username,
                                             fullname=fullname))
+        cache.delete('web_user_{}'.format(uid))
 
     @staticmethod
     def get(uid):
@@ -69,6 +70,7 @@ class User(Base):
                 .all()
             if q:
                 cache.set('user_{}'.format(uid), q[0])
+                cache.delete('web_user_{}'.format(uid))
                 return q[0]
             else:
                 return False
@@ -78,6 +80,19 @@ class User(Base):
         user = db.query(User).filter(User.uid == uid)
         user.update(update)
         db.commit()
+
+    @staticmethod
+    def generate_token(uid):
+        salt = str(CONFIG['salt']).encode('utf-8')
+        current_time = str(time.time()).encode('utf-8')
+        uid = str(uid).encode('utf-8')
+
+        t = MD5.new(uid)
+        t.update(salt)
+        t.update(current_time)
+        token = t.hexdigest()[:8]
+
+        return token
 
 
 class Chat(Base):
@@ -107,6 +122,7 @@ class Chat(Base):
 
         cache.set('chat_{}'.format(cid),
                   Chat(cid=cid, title=title))
+        cache.delete('web_chat_{}'.format(cid))
         db.commit()
 
     @staticmethod
@@ -123,6 +139,7 @@ class Chat(Base):
                 .all()
             if q:
                 cache.set('chat_{}'.format(cid), q[0])
+                cache.delete('web_chat_{}'.format(cid))
                 return q[0]
             else:
                 return False
@@ -334,8 +351,9 @@ class ChatStat(Base):
             else:
                 return False
 
-    def update(self, cid, update):
-        update['chat_hash'] = self.generate_hash(cid)
+    @staticmethod
+    def update(cid, update):
+        update['chat_hash'] = ChatStat.generate_hash(cid)
 
         sq = db.query(ChatStat.id) \
             .filter(ChatStat.cid == cid) \
@@ -391,14 +409,17 @@ class Stack:
 
 
 class Stats:
-    def get_user(self, user_id, chat_id=None):
+    @staticmethod
+    def get_user(user_id, chat_id=None):
         all_msg_count = 0
+        groups = []
 
         # All messages
         q = db.query(UserStat).filter(UserStat.uid == user_id).all()
         if q:
             for row in q:
                 all_msg_count += row.msg_count
+                groups.append(row.cid)
 
         if chat_id:
             user = UserStat().get(user_id, chat_id)
@@ -406,11 +427,12 @@ class Stats:
                 return {
                     'msg_count': all_msg_count,
                     'group_msg_count': user.msg_count,
-                    'percent': self.number_format(user.msg_count * 100 / all_msg_count, 2)
+                    'percent': Stats.number_format(user.msg_count * 100 / all_msg_count, 2)
                 }
 
         return {
-            'msg_count': all_msg_count
+            'msg_count': all_msg_count,
+            'groups': groups
         }
 
     def get_chat(self, chat_id):
@@ -457,29 +479,56 @@ class Stats:
         return locale.format("%.*f", (places, num), True)
 
     @staticmethod
-    def me_format(fullname, username, group_msg_count, percent, msg_count):
+    def me_format(uid, fullname, username, group_msg_count, percent, msg_count):
         uname = ''
         if username is not '':
             uname = ' (@{})'.format(username)
 
-        msg = '{}{}:\n' \
-              ' Messages in this group: {} ({}%)\n' \
-              ' Total messages: {}'.format(fullname,
-                                           uname,
-                                           group_msg_count,
-                                           percent,
-                                           msg_count)
+        msg = '{0}{1}:\n' \
+              ' Messages in this group: {2} ({3}%)\n' \
+              ' Total messages: {4}\n\n' \
+              ' [More]({5}/user/{6})'.format(fullname,
+                                             uname,
+                                             group_msg_count,
+                                             percent,
+                                             msg_count,
+                                             CONFIG['site_url'],
+                                             uid)
+        return msg
+
+    @staticmethod
+    def me_private_format(uid, group_list, msg_count, token):
+        groups = ''
+
+        # Group list generating
+        i = 1
+        for group in group_list:
+            user_stats = Stats().get_user(uid, group)
+            groups += ' *{0}. {1}* — {2} ({3}%)\n'.format(i,
+                                                          Chat().get(group).title,
+                                                          user_stats['group_msg_count'],
+                                                          user_stats['percent'])
+            i += 1
+
+        msg = 'Total messages: {0}\n\n' \
+              'Groups list:\n' \
+              '{1}\n' \
+              '[More]({2}/user/{3}/{4})'.format(msg_count,
+                                                groups,
+                                                CONFIG['site_url'],
+                                                uid,
+                                                token)
         return msg
 
     @staticmethod
     def stat_format(cid, msg_count, current_users, top_users):
-        msg = 'Сообщений: {}\n' \
-              'Активных пользовтелей сегодня: {}\n\n'.format(msg_count, current_users)
+        msg = 'Messages: {0}\n' \
+              'Today active users: {1}\n\n'.format(msg_count, current_users)
         if top_users is not '':
-            msg += 'Топ-5:\n{}\n'.format(top_users)
+            msg += 'Top-5:\n{0}\n'.format(top_users)
 
         # Link to web-site with stats
-        msg += '[Подробная статистика]({}/group/{})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
+        msg += '[More]({0}/group/{1})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
 
         return msg
 
