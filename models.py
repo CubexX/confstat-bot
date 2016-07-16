@@ -521,9 +521,10 @@ class Stats:
         return msg
 
     @staticmethod
-    def stat_format(cid, msg_count, current_users, top_users):
-        msg = 'Messages: {0}\n' \
-              'Today active users: {1}\n\n'.format(msg_count, current_users)
+    def stat_format(cid, msg_count, current_users, top_users, chat_title):
+        msg = '*{2}*\n' \
+              'Messages: {0}\n' \
+              'Today active users: {1}\n\n'.format(msg_count, current_users, chat_title)
         if top_users is not '':
             msg += 'Top-5:\n{0}\n'.format(top_users)
 

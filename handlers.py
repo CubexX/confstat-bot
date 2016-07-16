@@ -28,6 +28,7 @@ def stat(bot, update):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     chat_type = update.message.chat.type
+    chat_title = update.message.chat.title
 
     last_call = cache.get('last_{}'.format(chat_id))
 
@@ -46,7 +47,8 @@ def stat(bot, update):
             msg = Stats.stat_format(chat_id,
                                     info['msg_count'],
                                     info['current_users'],
-                                    info['top_users'])
+                                    info['top_users'],
+                                    chat_title)
             bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
             # Update last call
@@ -73,7 +75,7 @@ def me(bot, update):
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
     if chat_type == 'group' or chat_type == 'supergroup':
-        info = Stats.get_user(chat_id)
+        info = Stats.get_user(user_id, chat_id)
         msg = Stats.me_format(user_id,
                               fullname,
                               username,
