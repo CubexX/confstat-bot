@@ -168,10 +168,7 @@ class Entity(Base):
         self.count = count
 
     def __repr__(self):
-        return "<Entity('{}', '{}', '{}', '{}')>".format(self.cid,
-                                                         self.type,
-                                                         self.title,
-                                                         self.count)
+        return "<Entity('{}', '{}', '{}')>".format(self.type, self.title, self.count)
 
     def add(self, cid, type, title):
         entity = self.get(cid, type, title)
@@ -422,7 +419,7 @@ class Stats:
                 groups.append(row.cid)
 
         if chat_id:
-            user = UserStat().get(user_id, chat_id)
+            user = UserStat.get(user_id, chat_id)
             if user:
                 return {
                     'msg_count': all_msg_count,
@@ -435,11 +432,11 @@ class Stats:
             'groups': groups
         }
 
-    def get_chat(self, chat_id):
+    @staticmethod
+    def get_chat(chat_id):
         all_msg_count = 0
         current_users = 0
         top_users = ''
-        popular_links = ''
 
         # All messages in group and active users
         q = ChatStat().get(chat_id)
@@ -459,14 +456,13 @@ class Stats:
             for stats, user in q:
                 i += 1
                 if all_msg_count is not 0:
-                    top_users += ' *{}. {}* — {} ({}%)\n'.format(i, user.fullname,
-                                                                 stats.msg_count,
-                                                                 self.number_format(
-                                                                     stats.msg_count * 100 / all_msg_count,
-                                                                     2))
+                    percent = Stats.number_format(stats.msg_count * 100 / all_msg_count, 2)
+
+                    top_users += ' *{0}. {1}* — {2} ({3}%)\n'.format(i, user.fullname,
+                                                                     stats.msg_count,
+                                                                     percent)
                 else:
-                    top_users += ' *{}. {}* — {}\n'.format(i, user.fullname,
-                                                           stats.msg_count)
+                    top_users += ' *{0}. {1}* — {2}\n'.format(i, user.fullname, stats.msg_count)
 
         return {
             'msg_count': all_msg_count,
@@ -484,16 +480,16 @@ class Stats:
         if username is not '':
             uname = ' (@{})'.format(username)
 
-        msg = '{0}{1}:\n' \
+        msg = '*{0}*{1}:\n' \
               ' Messages in this group: {2} ({3}%)\n' \
               ' Total messages: {4}\n\n' \
-              ' [More]({5}/user/{6})'.format(fullname,
-                                             uname,
-                                             group_msg_count,
-                                             percent,
-                                             msg_count,
-                                             CONFIG['site_url'],
-                                             uid)
+              '[More]({5}/user/{6})'.format(fullname,
+                                            uname,
+                                            group_msg_count,
+                                            percent,
+                                            msg_count,
+                                            CONFIG['site_url'],
+                                            uid)
         return msg
 
     @staticmethod
@@ -503,9 +499,9 @@ class Stats:
         # Group list generating
         i = 1
         for group in group_list:
-            user_stats = Stats().get_user(uid, group)
+            user_stats = Stats.get_user(uid, group)
             groups += ' *{0}. {1}* — {2} ({3}%)\n'.format(i,
-                                                          Chat().get(group).title,
+                                                          Chat.get(group).title,
                                                           user_stats['group_msg_count'],
                                                           user_stats['percent'])
             i += 1
@@ -529,7 +525,7 @@ class Stats:
             msg += 'Top-5:\n{0}\n'.format(top_users)
 
         # Link to web-site with stats
-        msg += '[More]({0}/group/{1})'.format(CONFIG['site_url'], ChatStat().generate_hash(cid))
+        msg += '[More]({0}/group/{1})'.format(CONFIG['site_url'], ChatStat.generate_hash(cid))
 
         return msg
 
@@ -538,5 +534,4 @@ engine = create_engine(CONFIG['database'], convert_unicode=True, echo=False)
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
-session = Session()
-db = session
+db = Session()
