@@ -41,7 +41,7 @@ def stat(bot, update):
     if (int(time.time()) - last_call) >= 5:
         if chat_type == 'group' or chat_type == 'supergroup':
             # Get stats for group
-            info = Stats().get_chat(chat_id)
+            info = Stats.get_chat(chat_id)
 
             # Get msg text for /stat
             msg = Stats.stat_format(chat_id,
@@ -66,7 +66,7 @@ def me(bot, update):
     chat_type = update.message.chat.type
 
     if chat_type == 'private':
-        info = Stats().get_user(user_id)
+        info = Stats.get_user(user_id)
         token = User.generate_token(user_id)
         msg = Stats.me_private_format(user_id, info['groups'], info['msg_count'], token)
 
