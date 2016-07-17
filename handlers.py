@@ -212,7 +212,8 @@ def set_privacy(bot, update):
             msg = 'Your statistics is *private*'
         else:
             public = True
-            msg = 'Your statistics is *public*'
+            msg = 'Your statistics is *public*\n\n' \
+                  '{0}/user/{1}'.format(CONFIG['site_url'], user_id)
 
         User.update(user_id, {'public': public})
         cache.delete('user_{}'.format(user_id))
