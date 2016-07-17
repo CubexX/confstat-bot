@@ -101,24 +101,30 @@ class Chat(Base):
     id = Column('id', Integer, primary_key=True)
     cid = Column('cid', BigInteger)
     title = Column('title', Text)
+    public_link = Column('public_link', Text)
 
-    def __init__(self, id=None, cid=None, title=None):
+    def __init__(self, id=None, cid=None, title=None, public_link=None):
         self.id = id
         self.cid = cid
         self.title = title
+        self.public_link = public_link
 
     def __repr__(self):
         return "<Chat('{}', '{}')>".format(self.cid, self.title)
 
-    def add(self, cid, title):
+    def add(self, cid, title, public_link=''):
         chat = self.get(cid)
 
         if chat:
             if chat.title != title:
                 self.update(cid, {'title': title})
+
+            if chat.public_link != public_link:
+                self.update(cid, {'public_link': public_link})
         else:
             db.add(Chat(cid=cid,
-                        title=title))
+                        title=title,
+                        public_link=public_link))
 
         cache.set('chat_{}'.format(cid),
                   Chat(cid=cid, title=title))

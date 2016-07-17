@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat
+from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat, db
 from datetime import datetime, timedelta
 from telegram import ParseMode
 from main import cache, CONFIG
@@ -104,7 +104,7 @@ def message(bot, update):
     if chat_type == 'group' or chat_type == 'supergroup':
         # Add chat and user to DB
         User().add(user_id, username, fullname)
-        Chat().add(chat_id, chat_title)
+        Chat().add(chat_id, chat_title, bot.getChat(chat_id).username)
 
         if update.message.photo:
             Entity().add(chat_id, 'photo', None)
@@ -183,7 +183,13 @@ def update_to_supergroup(bot, update):
         UserStat.update(user_id, old_id, {'cid': new_id})
         Entity.update_all(old_id, {'cid': new_id})
         Chat.update(old_id, {'cid': new_id})
-        ChatStat.update(old_id, {'cid': new_id})
+
+        # Update all rows in chat_stats
+        for c in db.query(ChatStat)\
+                .filter(ChatStat.cid == old_id)\
+                .all():
+            c.cid = new_id
+        db.commit()
 
         bot.sendMessage(new_id, 'Group was updated to supergroup')
         cache.delete('last_{}'.format(old_id))
