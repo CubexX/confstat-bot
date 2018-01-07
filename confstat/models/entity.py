@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from sqlalchemy import Column, Integer, Text, BigInteger, String
+from sqlalchemy import BigInteger, Column, Integer, String, Text
+
 from main import make_db_session
+
 from . import Base
 
 

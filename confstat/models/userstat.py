@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from sqlalchemy import Column, Integer, BigInteger
+import time
+
+from sqlalchemy import BigInteger, Column, Integer
+
+from confstat import cache
 from confstat.models import Base
 from main import make_db_session
-from confstat import cache
-import time
 
 
 class UserStat(Base):

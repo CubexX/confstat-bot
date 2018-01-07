@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from sqlalchemy import Column, Integer, Text, BigInteger
-from . import Base
-from main import make_db_session
+from sqlalchemy import BigInteger, Column, Integer, Text
+
 from confstat import cache
+from main import make_db_session
+
+from . import Base
 
 
 class Chat(Base):

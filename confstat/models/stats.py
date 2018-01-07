@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from main import make_db_session
-from .userstat import UserStat
-from .chatstat import ChatStat
-from config import CONFIG
-from .chat import Chat
-from .user import User
 import locale
+
+from config import CONFIG
+from main import make_db_session
+
+from .chat import Chat
+from .chatstat import ChatStat
+from .user import User
+from .userstat import UserStat
 
 
 class Stats:
@@ -65,11 +67,11 @@ class Stats:
                 if all_msg_count is not 0:
                     percent = Stats.number_format(stats.msg_count * 100 / all_msg_count, 2)
 
-                    top_users += ' *{0}. {1}* — {2} ({3}%)\n'.format(i, user.fullname,
-                                                                     stats.msg_count,
-                                                                     percent)
+                    top_users += ' *{}. {}* — {} ({}%)\n'.format(i, user.fullname,
+                                                                 stats.msg_count,
+                                                                 percent)
                 else:
-                    top_users += ' *{0}. {1}* — {2}\n'.format(i, user.fullname, stats.msg_count)
+                    top_users += ' *{}. {}* — {}\n'.format(i, user.fullname, stats.msg_count)
 
         return {
             'msg_count': all_msg_count,
@@ -87,16 +89,16 @@ class Stats:
         if username is not '':
             uname = ' (@{})'.format(username)
 
-        msg = '*{0}*{1}:\n' \
-              ' Messages in this group: {2} ({3}%)\n' \
-              ' Total messages: {4}\n\n' \
-              '[More]({5}/user/{6})'.format(fullname,
-                                            uname,
-                                            group_msg_count,
-                                            percent,
-                                            msg_count,
-                                            CONFIG['site_url'],
-                                            uid)
+        msg = '*{}*{}:\n' \
+              'Messages in this group: {} ({}%)\n' \
+              'Total messages: {}\n\n' \
+              '[More]({}/user/{})'.format(fullname,
+                                          uname,
+                                          group_msg_count,
+                                          percent,
+                                          msg_count,
+                                          CONFIG['site_url'],
+                                          uid)
         return msg
 
     @staticmethod
@@ -106,32 +108,32 @@ class Stats:
         # Group list generating
         i = 1
         for group in group_list:
-            user_stats = Stats.get_user(uid, group)
-            groups += ' *{0}. {1}* — {2} ({3}%)\n'.format(i,
-                                                          Chat.get(group).title,
-                                                          user_stats['group_msg_count'],
-                                                          user_stats['percent'])
+            user_stats = Stats.get_user(uid, chat_id=group)
+            groups += ' *{}. {}* — {} ({}%)\n'.format(i,
+                                                      Chat.get(group).title,
+                                                      user_stats['group_msg_count'],
+                                                      user_stats['percent'])
             i += 1
 
-        msg = 'Total messages: {0}\n\n' \
+        msg = 'Total messages: {}\n\n' \
               'Groups list:\n' \
-              '{1}\n' \
-              '[More]({2}/user/{3}/{4})'.format(msg_count,
-                                                groups,
-                                                CONFIG['site_url'],
-                                                uid,
-                                                token)
+              '{}\n' \
+              '[More]({}/user/{}/{})'.format(msg_count,
+                                             groups,
+                                             CONFIG['site_url'],
+                                             uid,
+                                             token)
         return msg
 
     @staticmethod
     def stat_format(cid, msg_count, current_users, top_users, chat_title):
-        msg = '*{2}*\n' \
-              'Messages: {0}\n' \
-              'Today active users: {1}\n\n'.format(msg_count, current_users, chat_title)
+        msg = '*{}*\n' \
+              'Messages: {}\n' \
+              'Today active users: {}\n\n'.format(chat_title, msg_count, current_users)
         if top_users is not '':
-            msg += 'Top-5:\n{0}\n'.format(top_users)
+            msg += 'Top-5:\n{}\n'.format(top_users)
 
         # Link to web-site with stats
-        msg += '[More]({0}/group/{1})'.format(CONFIG['site_url'], ChatStat.generate_hash(cid))
+        msg += '[More]({}/group/{})'.format(CONFIG['site_url'], ChatStat.generate_hash(cid))
 
         return msg

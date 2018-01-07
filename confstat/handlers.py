@@ -1,51 +1,48 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-
-from .models.userstat import UserStat
-from .models.chatstat import ChatStat
-from .models.chat import Chat
-from .models.user import User
-from .models.stats import Stats
-from .models.stack import Stack
-from .models.entity import Entity
-
-from datetime import datetime, timedelta
-from telegram import ParseMode
-from main import CONFIG, make_db_session
-from confstat import cache
-
 import logging
-import time
 import re
+import time
+from datetime import datetime, timedelta
+
+from telegram import ParseMode
+
+from confstat import cache
+from main import CONFIG, make_db_session
+
+from .models.chat import Chat
+from .models.chatstat import ChatStat
+from .models.entity import Entity
+from .models.stack import Stack
+from .models.stats import Stats
+from .models.user import User
+from .models.userstat import UserStat
 
 logger = logging.getLogger(__name__)
 
 
 def start(bot, update):
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-
-    bot.sendMessage(chat_id, '/stat — get stats in group\n'
-                             '/me — get your stats\n'
-                             '/setprivacy — show/hide your stats\n\n'
-                             'Like bot? [Rate it!](https://storebot.me/bot/confstatbot)\n\n'
-                             'GitHub: [confstat-bot](https://github.com/CubexX/confstat-bot), '
-                             '[confstat-web](https://github.com/CubexX/confstat-web)', parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text('/stat — get stats in group\n'
+                              '/me — get your stats\n'
+                              '/setprivacy — show/hide your stats\n\n'
+                              'Like bot? [Rate it!](https://storebot.me/bot/confstatbot)\n\n'
+                              'GitHub: [confstat-bot](https://github.com/CubexX/confstat-bot), '
+                              '[confstat-web](https://github.com/CubexX/confstat-web)', parse_mode=ParseMode.MARKDOWN)
 
 
 def stat(bot, update):
     chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
     chat_type = update.message.chat.type
     chat_title = update.message.chat.title
 
+    # Anti-spam
     last_call = cache.get('last_{}'.format(chat_id))
 
     # First request
     if not last_call:
-        cache.set('last_{}'.format(chat_id), int(time.time()) - 5)
         last_call = int(time.time()) - 5
+        cache.set('last_{}'.format(chat_id), last_call)
 
     # If last request was over 5 seconds ago
     if (int(time.time()) - last_call) >= 5:
@@ -59,7 +56,7 @@ def stat(bot, update):
                                     info['current_users'],
                                     info['top_users'],
                                     chat_title)
-            bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+            update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
 
             # Update last call
             cache.set('last_{}'.format(chat_id), int(time.time()))
@@ -81,7 +78,7 @@ def me(bot, update):
 
         cache.set('user_token_{}'.format(user_id), token, 600)
 
-        bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
+        update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
 
     if chat_type == 'group' or chat_type == 'supergroup':
         info = Stats.get_user(user_id, chat_id=chat_id)
@@ -92,7 +89,7 @@ def me(bot, update):
                               info['percent'],
                               info['msg_count'])
 
-        bot.sendMessage(chat_id, msg, reply_to_message_id=msg_id, parse_mode=ParseMode.MARKDOWN)
+        update.message.reply_text(msg, reply_to_message_id=msg_id, parse_mode=ParseMode.MARKDOWN)
 
     logger.info('User {} requested stats'.format(user_id))
 
@@ -133,8 +130,12 @@ def message(bot, update):
             # http://link.com
             if entity['type'] == 'url':
                 link = msg[entity['offset']:entity['offset'] + entity['length']]
+
+                # Remove "http://"
                 link = re.sub('(.*)://', '', link)
+                # Get domain
                 link = link.split('/')[0]
+
                 Entity().add(cid=chat_id, type='url', title=link)
 
             # /command
@@ -174,7 +175,9 @@ def message(bot, update):
                          'users_count': 1})
         # Update user messages count
         UserStat().add(user_id, chat_id)
-    else:  # If message from user
+
+    # If message from user
+    else:
         pass
 
 
@@ -194,8 +197,8 @@ def update_to_supergroup(bot, update, db):
         Chat.update(old_id, {'cid': new_id})
 
         # Update all rows in chat_stats
-        for c in db.query(ChatStat)\
-                .filter(ChatStat.cid == old_id)\
+        for c in db.query(ChatStat) \
+                .filter(ChatStat.cid == old_id) \
                 .all():
             c.cid = new_id
         db.commit()
@@ -206,8 +209,6 @@ def update_to_supergroup(bot, update, db):
 
 
 def set_privacy(bot, update):
-    chat_id = update.message.chat_id
-    chat_type = update.message.chat.type
     user_id = update.message.from_user.id
     msg_id = update.message.message_id
 
@@ -229,4 +230,4 @@ def set_privacy(bot, update):
     else:
         msg = 'User not found'
 
-    bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=msg_id)
+    update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=msg_id)

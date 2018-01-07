@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from config import CONFIG
-from confstat import models, handlers
 import logging
+
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
+
+from config import CONFIG
+from confstat import handlers, models
 
 logging.basicConfig(
     format=CONFIG['logging']['format'],
@@ -26,8 +28,8 @@ def make_db_session(func):
     return wrapper
 
 
-def run_worker(telegram_token):
-    updater = Updater(telegram_token)
+def main():
+    updater = Updater(CONFIG['bot_token'])
     dp = updater.dispatcher
 
     job_queue = updater.job_queue
@@ -50,14 +52,7 @@ def run_worker(telegram_token):
     logger.info('Bot started')
     updater.start_polling()
 
-    return updater
-
-
-
-def main():
-    telegram_updater = run_worker(CONFIG['bot_token'])
-
-    telegram_updater.idle()
+    updater.idle()
 
 
 if __name__ == '__main__':
