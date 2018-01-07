@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from sqlalchemy import Column, Integer, Text, Boolean
-from Crypto.Hash import MD5
-from config import CONFIG
-from . import Base
-from main import make_db_session
-from confstat import cache
 import time
+
+from Crypto.Hash import MD5
+from sqlalchemy import Boolean, Column, Integer, Text
+
+from config import CONFIG
+from confstat import cache
+from main import make_db_session
+
+from . import Base
 
 
 class User(Base):

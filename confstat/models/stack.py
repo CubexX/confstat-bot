@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from .chatstat import ChatStat
 import time
+
+from .chatstat import ChatStat
 
 
 class Stack:
@@ -17,9 +18,9 @@ class Stack:
         # WTF???
         # TODO: fix this
         counter = {x['cid']: {'msgs': 0, 'usrs': 0} for x in cids_list}
-        for ccid in counter.keys():
-            counter[ccid]['msg'] = sum([a['msg_count'] for a in cids_list if a['cid'] == ccid])
-            counter[ccid]['usr'] = sum([a['users_count'] for a in cids_list if a['cid'] == ccid])
+        for cid in counter.keys():
+            counter[cid]['msg'] = sum([a['msg_count'] for a in cids_list if a['cid'] == cid])
+            counter[cid]['usr'] = sum([a['users_count'] for a in cids_list if a['cid'] == cid])
 
         for x in counter.items():
             cid = x[0]
