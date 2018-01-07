@@ -1,5 +1,5 @@
-python-memcached==1.58
-python-telegram-bot==4.3.4
-requests==2.10.0
-SQLAlchemy==1.0.12
-pycrypto==2.6.1
+python-memcached
+python-telegram-bot
+requests
+SQLAlchemy
+pycrypto

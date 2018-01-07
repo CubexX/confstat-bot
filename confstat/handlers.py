@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from models import Entity, Chat, User, UserStat, Stack, Stats, ChatStat, db
+
+from .models.userstat import UserStat
+from .models.chatstat import ChatStat
+from .models.chat import Chat
+from .models.user import User
+from .models.stats import Stats
+from .models.stack import Stack
+from .models.entity import Entity
+
 from datetime import datetime, timedelta
 from telegram import ParseMode
-from main import cache, CONFIG
+from main import CONFIG, make_db_session
+from confstat import cache
+
 import logging
 import time
 import re
@@ -61,8 +71,7 @@ def me(bot, update):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     username = update.message.from_user.username
-    fullname = " ".join([update.message.from_user.first_name,
-                         update.message.from_user.last_name])
+    fullname = update.message.from_user.first_name
     chat_type = update.message.chat.type
 
     if chat_type == 'private':
@@ -75,7 +84,7 @@ def me(bot, update):
         bot.sendMessage(chat_id, msg, parse_mode=ParseMode.MARKDOWN)
 
     if chat_type == 'group' or chat_type == 'supergroup':
-        info = Stats.get_user(user_id, chat_id)
+        info = Stats.get_user(user_id, chat_id=chat_id)
         msg = Stats.me_format(user_id,
                               fullname,
                               username,
@@ -94,8 +103,7 @@ def message(bot, update):
     msg = update.message.text
 
     username = update.message.from_user.username
-    fullname = " ".join([update.message.from_user.first_name,
-                         update.message.from_user.last_name])
+    fullname = update.message.from_user.first_name
 
     chat_type = update.message.chat.type
     chat_title = update.message.chat.title
@@ -104,7 +112,7 @@ def message(bot, update):
     if chat_type == 'group' or chat_type == 'supergroup':
         # Add chat and user to DB
         User().add(user_id, username, fullname)
-        Chat().add(chat_id, chat_title, bot.getChat(chat_id).username)
+        Chat().add(chat_id, chat_title, public_link=bot.getChat(chat_id).username)
 
         if update.message.photo:
             Entity().add(chat_id, 'photo', None)
@@ -149,7 +157,7 @@ def message(bot, update):
         # If user already in group
         if user_stat:
             today = datetime.today().day
-            last_activity = datetime.fromtimestamp(timestamp=user_stat.last_activity).day
+            last_activity = datetime.fromtimestamp(user_stat.last_activity).day
 
             # If last activity was not today
             if (timedelta(today).days - timedelta(last_activity).days) != 0:
@@ -170,11 +178,12 @@ def message(bot, update):
         pass
 
 
-def job(bot):
+def job(bot, update):
     Stack().send()
 
 
-def update_to_supergroup(bot, update):
+@make_db_session
+def update_to_supergroup(bot, update, db):
     old_id = update.message.migrate_from_chat_id
     new_id = update.message.chat_id
     user_id = update.message.from_user.id
