@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
+from time import time
 from sqlalchemy import BigInteger, Column, Integer, Text
 
 from confstat import cache
@@ -16,12 +17,14 @@ class Chat(Base):
     cid = Column('cid', BigInteger)
     title = Column('title', Text)
     public_link = Column('public_link', Text)
+    add_time = Column('add_time', Integer)
 
-    def __init__(self, id=None, cid=None, title=None, public_link=None):
+    def __init__(self, id=None, cid=None, title=None, public_link=None, add_time=None):
         self.id = id
         self.cid = cid
         self.title = title
         self.public_link = public_link
+        self.add_time = add_time
 
     def __repr__(self):
         return "<Chat('{}', '{}')>".format(self.cid, self.title)
@@ -39,7 +42,8 @@ class Chat(Base):
         else:
             db.add(Chat(cid=cid,
                         title=title,
-                        public_link=public_link))
+                        public_link=public_link,
+                        add_time=round(time())))
 
         cache.set('chat_{}'.format(cid),
                   Chat(cid=cid, title=title))
