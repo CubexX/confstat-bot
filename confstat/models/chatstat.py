@@ -7,6 +7,7 @@ from sqlalchemy import BigInteger, Column, Integer
 
 from confstat import cache
 from confstat.models import Base
+from confstat.models.chat import Chat
 from main import make_db_session
 
 
@@ -82,7 +83,7 @@ class ChatStat(Base):
     @staticmethod
     @make_db_session
     def update(cid, update, db):
-        update['chat_hash'] = ChatStat.generate_hash(cid)
+        update['chat_hash'] = Chat.generate_hash(cid)
 
         sq = db.query(ChatStat.id) \
             .filter(ChatStat.cid == cid) \
