@@ -134,6 +134,6 @@ class Stats:
             msg += 'Top:\n{}\n'.format(top_users)
 
         # Link to web-site with stats
-        msg += '[More]({}/group/{})'.format(CONFIG['site_url'], ChatStat.generate_hash(cid))
+        msg += '[More]({}/group/{})'.format(CONFIG['site_url'], Chat.generate_hash(cid))
 
         return msg
