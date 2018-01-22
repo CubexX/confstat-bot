@@ -83,8 +83,6 @@ class ChatStat(Base):
     @staticmethod
     @make_db_session
     def update(cid, update, db):
-        update['chat_hash'] = Chat.generate_hash(cid)
-
         sq = db.query(ChatStat.id) \
             .filter(ChatStat.cid == cid) \
             .order_by(ChatStat.id.desc()).limit(1).all()
