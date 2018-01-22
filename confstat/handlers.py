@@ -48,19 +48,20 @@ def stat(bot, update):
     if (int(time.time()) - last_call) >= 5:
         if chat_type == 'group' or chat_type == 'supergroup':
             # Get stats for group
-            info = Stats.get_chat(chat_id)
+            info = Stats.get_for_chat(chat_id)
 
-            # Get msg text for /stat
-            msg = Stats.stat_format(chat_id,
-                                    info['msg_count'],
-                                    info['current_users'],
-                                    info['top_users'],
-                                    chat_title)
-            update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+            if info:
+                # Get msg text for /stat
+                msg = Stats.stat_format(chat_id,
+                                        info['msg_count'],
+                                        info['current_users'],
+                                        info['top_users'],
+                                        chat_title)
+                update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
 
-            # Update last call
-            cache.set('last_{}'.format(chat_id), int(time.time()))
-            logger.info('Group {} requested stats'.format(chat_id))
+                # Update last call
+                cache.set('last_{}'.format(chat_id), int(time.time()))
+                logger.info('Group {} requested stats'.format(chat_id))
 
 
 def me(bot, update):
@@ -72,7 +73,7 @@ def me(bot, update):
     chat_type = update.message.chat.type
 
     if chat_type == 'private':
-        info = Stats.get_user(user_id)
+        info = Stats.get_for_user(user_id)
         token = User.generate_token(user_id)
         msg = Stats.me_private_format(user_id, info['groups'], info['msg_count'], token)
 
@@ -81,7 +82,7 @@ def me(bot, update):
         update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
 
     if chat_type == 'group' or chat_type == 'supergroup':
-        info = Stats.get_user(user_id, chat_id=chat_id)
+        info = Stats.get_for_user(user_id, chat_id=chat_id)
         msg = Stats.me_format(user_id,
                               fullname,
                               username,

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
+from Crypto.Hash import MD5
+from config import CONFIG
 from time import time
 from sqlalchemy import BigInteger, Column, Integer, Text
 
@@ -18,13 +20,15 @@ class Chat(Base):
     title = Column('title', Text)
     public_link = Column('public_link', Text)
     add_time = Column('add_time', Integer)
+    chat_hash = Column('hash', Text)
 
-    def __init__(self, id=None, cid=None, title=None, public_link=None, add_time=None):
+    def __init__(self, id=None, cid=None, title=None, public_link=None, add_time=None, chat_hash=None):
         self.id = id
         self.cid = cid
         self.title = title
         self.public_link = public_link
         self.add_time = add_time
+        self.chat_hash = chat_hash
 
     def __repr__(self):
         return "<Chat('{}', '{}')>".format(self.cid, self.title)
@@ -32,6 +36,7 @@ class Chat(Base):
     @make_db_session
     def add(self, cid, title, db, public_link=''):
         chat = self.get(cid)
+        add_time = round(time())
 
         if chat:
             if chat.title != title:
@@ -43,10 +48,16 @@ class Chat(Base):
             db.add(Chat(cid=cid,
                         title=title,
                         public_link=public_link,
-                        add_time=round(time())))
+                        add_time=add_time,
+                        chat_hash=self.generate_hash(cid)))
 
         cache.set('chat_{}'.format(cid),
-                  Chat(cid=cid, title=title))
+                  Chat(cid=cid,
+                       title=title,
+                       public_link=public_link,
+                       add_time=add_time,
+                       chat_hash=self.generate_hash(cid)))
+
         cache.delete('web_chat_{}'.format(cid))
         db.commit()
 
@@ -76,3 +87,14 @@ class Chat(Base):
         chat = db.query(Chat).filter(Chat.cid == cid)
         chat.update(update)
         db.commit()
+
+    @staticmethod
+    def generate_hash(cid):
+        salt = str(CONFIG['salt']).encode('utf-8')
+        cid = str(cid).encode('utf-8')
+
+        h = MD5.new(cid)
+        h.update(salt)
+        chat_hash = h.hexdigest()
+
+        return chat_hash

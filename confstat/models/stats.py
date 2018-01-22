@@ -15,7 +15,7 @@ from .userstat import UserStat
 class Stats:
     @staticmethod
     @make_db_session
-    def get_user(user_id, db, chat_id=None):
+    def get_for_user(user_id, db, chat_id=None):
         all_msg_count = 0
         groups = []
 
@@ -42,7 +42,7 @@ class Stats:
 
     @staticmethod
     @make_db_session
-    def get_chat(chat_id, db):
+    def get_for_chat(chat_id, db):
         all_msg_count = 0
         current_users = 0
         top_users = ''
@@ -108,7 +108,7 @@ class Stats:
         # Group list generating
         i = 1
         for group in group_list:
-            user_stats = Stats.get_user(uid, chat_id=group)
+            user_stats = Stats.get_for_user(uid, chat_id=group)
             groups += ' *{}. {}* — {} ({}%)\n'.format(i,
                                                       Chat.get(group).title,
                                                       user_stats['group_msg_count'],
@@ -131,9 +131,9 @@ class Stats:
               'Messages: {}\n' \
               'Today active users: {}\n\n'.format(chat_title, msg_count, current_users)
         if top_users is not '':
-            msg += 'Top-5:\n{}\n'.format(top_users)
+            msg += 'Top:\n{}\n'.format(top_users)
 
         # Link to web-site with stats
-        msg += '[More]({}/group/{})'.format(CONFIG['site_url'], ChatStat.generate_hash(cid))
+        msg += '[More]({}/group/{})'.format(CONFIG['site_url'], Chat.generate_hash(cid))
 
         return msg
