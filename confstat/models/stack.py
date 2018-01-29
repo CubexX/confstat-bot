@@ -4,6 +4,7 @@ __author__ = 'CubexX'
 import time
 
 from .chatstat import ChatStat
+from confstat import cache
 
 
 class Stack:
@@ -14,6 +15,7 @@ class Stack:
 
     def send(self):
         cids_list = self.stack
+        all_messages = 0
 
         # WTF???
         # TODO: fix this
@@ -26,11 +28,20 @@ class Stack:
             cid = x[0]
             msg_count = x[1]['msg']
             users_count = x[1]['usr']
+            all_messages += msg_count
 
             ChatStat().add(cid,
                            users_count,
                            msg_count,
                            int(time.time()))
+
+        # Statistics for admin panel
+        c = cache.get('today_messages')
+
+        if c:
+            cache.incr('today_messages', all_messages)
+        else:
+            cache.set('today_messages', all_messages, 86400)
 
         cids_list.clear()
 
