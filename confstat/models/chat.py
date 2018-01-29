@@ -45,12 +45,22 @@ class Chat(Base):
             if chat.public_link != public_link:
                 self.update(cid, {'public_link': public_link})
         else:
+            # Statistics for admin panel
+            c = cache.get('today_chats')
+
+            if c:
+                cache.incr('today_chats')
+            else:
+                cache.set('today_chats', 1, 86400)
+
+            # Add new chat to database
             db.add(Chat(cid=cid,
                         title=title,
                         public_link=public_link,
                         add_time=add_time,
                         chat_hash=self.generate_hash(cid)))
 
+        # Add new/updated chat to memcache
         cache.set('chat_{}'.format(cid),
                   Chat(cid=cid,
                        title=title,
