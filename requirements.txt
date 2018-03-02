@@ -2,4 +2,3 @@ python-memcached
 python-telegram-bot
 requests
 SQLAlchemy
-pycrypto

@@ -7,7 +7,6 @@ from sqlalchemy import BigInteger, Column, Integer
 
 from confstat import cache
 from confstat.models import Base
-from confstat.models.chat import Chat
 from main import make_db_session
 
 
@@ -90,4 +89,13 @@ class ChatStat(Base):
         db.query(ChatStat) \
             .filter(ChatStat.id == sq[0][0]) \
             .update(update)
+        db.commit()
+
+    @staticmethod
+    @make_db_session
+    def update_all(old_id, new_id, db):
+        for c in db.query(ChatStat) \
+                .filter(ChatStat.cid == old_id) \
+                .all():
+            c.cid = new_id
         db.commit()

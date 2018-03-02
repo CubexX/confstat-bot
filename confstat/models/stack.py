@@ -3,8 +3,9 @@ __author__ = 'CubexX'
 
 import time
 
-from .chatstat import ChatStat
 from confstat import cache
+
+from .chatstat import ChatStat
 
 
 class Stack:
