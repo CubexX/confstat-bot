@@ -6,7 +6,6 @@ This [bot](http://telegram.me/confstatbot) collects statistics from your chat.
 
 Installation
 -------
-**Python >=3.5 required!**
 ```bash
 pip3 install -r requirements.txt
 ```
@@ -17,6 +16,7 @@ Edit config.json:
 "bot_token": "your_token",
 "database": "mysql://user:password@localhost/database?charset=utf8mb4",
 "site_url": "http://your.site.name"
+"salt": "your_super_secret_salt",
 ```
 And start bot:
 ```bash

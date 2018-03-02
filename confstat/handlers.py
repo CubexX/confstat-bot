@@ -9,11 +9,12 @@ from datetime import datetime, timedelta
 from telegram import ParseMode
 
 from confstat import cache
-from main import CONFIG, make_db_session
+from main import CONFIG
 
 from .models.chat import Chat
 from .models.chatstat import ChatStat
 from .models.entity import Entity
+from .models.message import Message
 from .models.stack import Stack
 from .models.stats import Stats
 from .models.user import User
@@ -23,9 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 def start(bot, update):
-    update.message.reply_text('/stat — get stats in group\n'
-                              '/me — get your stats\n'
-                              '/setprivacy — show/hide your stats\n\n'
+    update.message.reply_text('*First of all, add this bot to your group chat*\n'
+                              '/stat — get statistics in group\n'
+                              '/me — get your own statistics\n'
+                              '/setprivacy — show/hide your own statistics\n\n'
                               'Like bot? [Rate it!](https://storebot.me/bot/confstatbot)\n\n'
                               'GitHub: [confstat-bot](https://github.com/CubexX/confstat-bot), '
                               '[confstat-web](https://github.com/CubexX/confstat-web)', parse_mode=ParseMode.MARKDOWN)
@@ -137,22 +139,22 @@ def message(bot, update):
                 # Get domain
                 link = link.split('/')[0]
 
-                Entity().add(cid=chat_id, type='url', title=link)
+                Entity().add(chat_id, 'url', link)
 
             # /command
             if entity['type'] == 'bot_command':
                 title = msg[entity['offset']:entity['offset'] + entity['length']]
-                Entity().add(cid=chat_id, type='bot_command', title=title)
+                Entity().add(chat_id, 'bot_command', title)
 
             # #hashtag
             if entity['type'] == 'hashtag':
                 title = msg[entity['offset']:entity['offset'] + entity['length']]
-                Entity().add(cid=chat_id, type='hashtag', title=title)
+                Entity().add(chat_id, 'hashtag', title)
 
             # @username
             if entity['type'] == 'mention':
                 title = msg[entity['offset']:entity['offset'] + entity['length']]
-                Entity().add(cid=chat_id, type='mention', title=title)
+                Entity().add(chat_id, 'mention', title)
 
         user_stat = UserStat.get(user_id, chat_id)
 
@@ -176,6 +178,8 @@ def message(bot, update):
                          'users_count': 1})
         # Update user messages count
         UserStat().add(user_id, chat_id)
+        # Add message to database
+        Message().add(user_id, chat_id)
 
     # If message from user
     else:
@@ -186,25 +190,22 @@ def job(bot, update):
     Stack().send()
 
 
-@make_db_session
-def update_to_supergroup(bot, update, db):
+def update_to_supergroup(bot, update):
     old_id = update.message.migrate_from_chat_id
     new_id = update.message.chat_id
     user_id = update.message.from_user.id
 
     if old_id:
         UserStat.update(user_id, old_id, {'cid': new_id})
+        ChatStat.update_all(old_id, new_id)
+
         Entity.update_all(old_id, {'cid': new_id})
         Chat.update(old_id, {'cid': new_id})
 
-        # Update all rows in chat_stats
-        for c in db.query(ChatStat) \
-                .filter(ChatStat.cid == old_id) \
-                .all():
-            c.cid = new_id
-        db.commit()
+        Message.update_all(old_id, new_id)
 
         bot.sendMessage(new_id, 'Group was updated to supergroup')
+
         cache.delete('last_{}'.format(old_id))
         logger.info('Group {} was updated to supergroup {}'.format(old_id, new_id))
 
@@ -232,3 +233,8 @@ def set_privacy(bot, update):
         msg = 'User not found'
 
     update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN, reply_to_message_id=msg_id)
+
+
+def on_error(bot, update, error):
+    if error != 'Timed out':
+        logger.error('Update "{}" caused error "{}"'.format(update, error))

@@ -40,6 +40,7 @@ def main():
     dp.add_handler(CommandHandler('me', handlers.me))
     dp.add_handler(CommandHandler('setprivacy', handlers.set_privacy))
     dp.add_handler(MessageHandler(Filters.status_update, handlers.update_to_supergroup))
+    dp.add_error_handler(handlers.on_error)
 
     dp.add_handler(MessageHandler((Filters.text |
                                    Filters.photo |

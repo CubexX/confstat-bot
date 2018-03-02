@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
-from Crypto.Hash import MD5
-from config import CONFIG
+import hashlib
 from time import time
+
 from sqlalchemy import BigInteger, Column, Integer, Text
 
+from config import CONFIG
 from confstat import cache
 from main import make_db_session
 
@@ -100,11 +101,7 @@ class Chat(Base):
 
     @staticmethod
     def generate_hash(cid):
-        salt = str(CONFIG['salt']).encode('utf-8')
         cid = str(cid).encode('utf-8')
+        salt = str(CONFIG['salt']).encode('utf-8')
 
-        h = MD5.new(cid)
-        h.update(salt)
-        chat_hash = h.hexdigest()
-
-        return chat_hash
+        return hashlib.md5(cid + salt).hexdigest()

@@ -4,3 +4,4 @@ __pycache__
 .stfolder
 *.sync*
 .stignore
+bot.log

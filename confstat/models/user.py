@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 __author__ = 'CubexX'
 
+import hashlib
 import time
 
-from Crypto.Hash import MD5
 from sqlalchemy import Boolean, Column, Integer, Text
 
 from config import CONFIG
@@ -89,9 +89,6 @@ class User(Base):
         current_time = str(time.time()).encode('utf-8')
         uid = str(uid).encode('utf-8')
 
-        t = MD5.new(uid)
-        t.update(salt)
-        t.update(current_time)
-        token = t.hexdigest()[:8]
+        t = hashlib.md5(uid + salt + current_time)
 
-        return token
+        return t.hexdigest()[:8]
