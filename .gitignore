@@ -5,3 +5,4 @@ __pycache__
 *.sync*
 .stignore
 bot.log
+config.json
